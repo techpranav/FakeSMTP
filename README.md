@@ -20,7 +20,7 @@ It is licensed under the very free BSD or GPL license, whichever you prefer.
 Requirements
 ------------
 
-You need Java JVM 1.6 or newer installed on your machine.
+You need Java 21 or newer installed on your machine. The project is built and tested with Temurin 21.
 
 If you are on a "Unix-like" machine (Mac, GNU/Linux, BSD...), you may have
 to be "root" to start the port `25`, otherwise, try another port >= `1024`.
@@ -60,6 +60,18 @@ To see all the available options (relay domains, custom eml-viewer...):
     java -jar fakeSMTP-VERSION.jar --help
 
 
+Inbox
+-----
+
+The window is a mail client: inbox, unread mail, search, and a reading pane that lays out HTML (tables, inline CSS, `cid:` images, and SVG charts). Plain text, headers, and the raw MIME message are one click away. Remote images and JavaScript stay blocked. A new message raises a desktop notification where the operating system supports one, and an in-window notice otherwise.
+
+Settings (theme, notifications, sort, window size) are stored in `~/.fakeSMTP-ui.properties`. The SMTP port and output directory stay in `~/.fakeSMTP.properties`.
+
+Background mode (`-s -b`) still does not open the window.
+
+See `docs/FEATURES.md` for what the HTML view can and cannot render.
+
+
 Alternatives
 ------------
 
@@ -85,7 +97,7 @@ Listed below are some greats alternatives to Fake SMTP:
 Building it
 -----------
 
-You need to download and setup Maven.
+You need JDK 21 and Maven.
 Once installed, go to project directory and run the following command:
 
     mvn package -Dmaven.test.skip

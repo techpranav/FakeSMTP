@@ -27,9 +27,9 @@ import java.util.Map;
 public enum UIModel {
 	INSTANCE;
 
-	private boolean started = false; // server is not started by default
-	private String portStr;
-	private String hostStr;
+	private volatile boolean started = false; // server is not started by default
+	private volatile String portStr;
+	private volatile String hostStr;
 	private int nbMessageReceived = 0;
 	private String savePath = I18n.INSTANCE.get("emails.default.dir");
 	private final Map<Integer, String> listMailsMap = new HashMap<Integer, String>();
@@ -39,9 +39,9 @@ public enum UIModel {
 	}
 
 	/**
-	 * Happens when a user clicks on the start button.
+	 * Happens when a user clicks on the start or the stop button.
 	 * <p>
-	 * This method will notify the {@code SMTPServerHandler} to start the server.
+	 * This method will notify the {@code SMTPServerHandler} to start the server, or to stop it if it is already started.
 	 * </p>
 	 *
 	 * @throws InvalidPortException when the port is invalid.
@@ -50,9 +50,9 @@ public enum UIModel {
 	 * @throws InvalidHostException when the address cannot be resolved.
 	 * @throws RuntimeException when an unknown exception happened.
 	 */
-	public void toggleButton() throws BindPortException, OutOfRangePortException, InvalidPortException, InvalidHostException {
+	public synchronized void toggleButton() throws BindPortException, OutOfRangePortException, InvalidPortException, InvalidHostException {
 		if (started) {
-			// Do nothing. We can't stop the server. User has to quit the app (issue with SubethaSMTP)
+			SMTPServerHandler.INSTANCE.stopServer();
 		} else {
 			try {
 				int port = Integer.parseInt(portStr);
@@ -86,6 +86,14 @@ public enum UIModel {
 
 	public void setHost(String host) {
 		this.hostStr = host;
+	}
+
+	public String getPort() {
+		return portStr;
+	}
+
+	public String getHost() {
+		return hostStr;
 	}
 
 	public int getNbMessageReceived() {

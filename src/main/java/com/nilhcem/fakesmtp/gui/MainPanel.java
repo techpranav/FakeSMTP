@@ -1,23 +1,40 @@
 package com.nilhcem.fakesmtp.gui;
 
+import java.awt.Image;
+import java.awt.Toolkit;
+import java.io.File;
+import java.util.Observable;
+
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
 import com.nilhcem.fakesmtp.core.ArgsHandler;
+import com.nilhcem.fakesmtp.core.Configuration;
 import com.nilhcem.fakesmtp.core.I18n;
+import com.nilhcem.fakesmtp.core.UISettings;
 import com.nilhcem.fakesmtp.gui.info.ClearAllButton;
 import com.nilhcem.fakesmtp.gui.info.NbReceivedLabel;
 import com.nilhcem.fakesmtp.gui.info.PortTextField;
 import com.nilhcem.fakesmtp.gui.info.SaveMsgField;
 import com.nilhcem.fakesmtp.gui.info.StartServerButton;
+import com.nilhcem.fakesmtp.gui.inbox.InboxView;
+import com.nilhcem.fakesmtp.gui.inbox.LegacyControls;
+import com.nilhcem.fakesmtp.gui.inbox.SettingsPreferences;
+import com.nilhcem.fakesmtp.gui.inbox.WindowRef;
 import com.nilhcem.fakesmtp.gui.tab.LastMailPane;
 import com.nilhcem.fakesmtp.gui.tab.LogsPane;
 import com.nilhcem.fakesmtp.gui.tab.MailsListPane;
+import com.nilhcem.fakesmtp.model.InboxModel;
+import com.nilhcem.fakesmtp.model.UIModel;
+import com.nilhcem.fakesmtp.notification.DesktopNotificationBackend;
+import com.nilhcem.fakesmtp.notification.InAppToast;
+import com.nilhcem.fakesmtp.notification.NewMailNotifier;
+import com.nilhcem.fakesmtp.server.InboxBridge;
 import com.nilhcem.fakesmtp.server.MailSaver;
 import com.nilhcem.fakesmtp.server.SMTPServerHandler;
-import net.miginfocom.swing.MigLayout;
 
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTabbedPane;
-import java.util.Observable;
+import net.miginfocom.swing.MigLayout;
 
 /**
  * Provides the main panel of the application, which will contain all the components.
@@ -26,56 +43,58 @@ import java.util.Observable;
  * @since 1.0
  */
 public final class MainPanel {
-	// I18n
 	private final I18n i18n = I18n.INSTANCE;
-
-	// Panel and layout
-	private final MigLayout layout = new MigLayout(
-		"", // Layout constraints
-		"[] 10 [] [] [grow,fill]", // Column constraints
-		"[] [] 5 [] 5 [grow,fill] []"); // Row constraints
+	private final MigLayout layout = new MigLayout("insets 0", "[grow,fill]", "[grow,fill]");
 	private final JPanel mainPanel = new JPanel(layout);
-
-	// Directory chooser
 	private final DirChooser dirChooser = new DirChooser(mainPanel);
-
-	// Port
 	private final JLabel portLabel = new JLabel(i18n.get("mainpanel.listening.port"));
 	private final PortTextField portText = new PortTextField();
 	private final StartServerButton startServerBtn = new StartServerButton();
-
-	// Messages received
 	private final JLabel receivedLabel = new JLabel(i18n.get("mainpanel.messages.received"));
 	private final NbReceivedLabel nbReceivedLabel = new NbReceivedLabel();
-
-	// Save incoming messages to
 	private final JLabel saveMessages = new JLabel(i18n.get("mainpanel.save.messages"));
 	private final SaveMsgField saveMsgTextField = new SaveMsgField();
-
-	// Tab pane
-	private final JTabbedPane tabbedPane = new JTabbedPane();
 	private final LogsPane logsPane = new LogsPane();
 	private final MailsListPane mailsListPane = new MailsListPane();
 	private final LastMailPane lastMailPane = new LastMailPane();
-
-	// Clear all
 	private final ClearAllButton clearAll = new ClearAllButton();
+	private final WindowRef windowRef = new WindowRef();
+	private final InAppToast toast = new InAppToast();
+	private final InboxModel inboxModel = new InboxModel();
+	private final InboxBridge bridge;
+	private final InboxView inboxView;
 
 	/**
 	 * Creates the main panel.
 	 * <p>
-	 * To create the main panel, the method will first have to handle components interactions by
-	 * adding observers to observable elements, then the method will build the GUI by placing all the
-	 * components in the main panel.
+	 * The original SMTP controls stay in place and feed the inbox. The mails table is still updated
+	 * so clearing emails can delete the saved files, and the SMTP log remains available from the sidebar.
 	 * </p>
 	 *
 	 * @param menu the menu bar which will notify the directory file chooser.
+	 * @param frame the main window, used by notifications and dialogs.
 	 */
-	public MainPanel(Observable menu) {
+	public MainPanel(Observable menu, JFrame frame) {
+		windowRef.set(frame);
+		Image icon = Toolkit.getDefaultToolkit().getImage(
+				getClass().getResource(Configuration.INSTANCE.get("application.icon.path")));
+		NewMailNotifier notifier = new NewMailNotifier(new SettingsPreferences(windowRef),
+				new DesktopNotificationBackend(toast, icon));
+		bridge = new InboxBridge(inboxModel, notifier);
+		LegacyControls controls = new LegacyControls(portText, startServerBtn, saveMsgTextField,
+				nbReceivedLabel, clearAll, logsPane);
+		inboxView = new InboxView(controls, inboxModel, bridge, toast, windowRef);
+		toast.setHandler(messageId -> {
+			frame.setVisible(true);
+			inboxView.reveal(messageId);
+		});
 		assignLabelsToFields();
 		addObservers(menu);
-		buildGUI();
+		mainPanel.add(inboxView, "grow");
 		checkArgs();
+		if (!ArgsHandler.INSTANCE.memoryModeEnabled() && UISettings.INSTANCE.getBoolean(UISettings.LOAD_SAVED_EMAILS)) {
+			bridge.loadSaved(new File(UIModel.INSTANCE.getSavePath()));
+		}
 	}
 
 	/**
@@ -88,93 +107,49 @@ public final class MainPanel {
 	}
 
 	/**
+	 * Stops the background parser when the window closes.
+	 */
+	public void shutdown() {
+		bridge.shutdown();
+	}
+
+	/**
 	 * Handles components interactions by adding observers to observable elements.
-	 * <p>
-	 * The interactions are the following:
-	 * <ul>
-	 *   <li>Open the directory chooser when clicking on the menu/the save message field;</li>
-	 *   <li>Enable/Disable the port field when the server starts;</li>
-	 *   <li>Set the new directory, once a folder is selected;<li>
-	 *   <li>Notify components when a message is received;</li>
-	 *   <li>Notify components when the user wants to clear them all.</li>
-	 * </ul>
-	 * </p>
 	 *
 	 * @param menu the menu bar which will notify the directory file chooser.
 	 */
 	private void addObservers(Observable menu) {
-		// When we want to select a directory
 		menu.addObserver(dirChooser);
 		saveMsgTextField.addObserver(dirChooser);
-
-		// When we click on "start server" button
 		startServerBtn.addObserver(portText);
-
-		// When we press "Enter" on the PortTextField
 		portText.addObserver(startServerBtn);
-
-		// Once we chose a directory
 		dirChooser.addObserver(saveMsgTextField);
 
-		// When a message is received
 		MailSaver mailSaver = SMTPServerHandler.INSTANCE.getMailSaver();
 		mailSaver.addObserver(nbReceivedLabel);
 		mailSaver.addObserver(mailsListPane);
 		mailSaver.addObserver(lastMailPane);
 		mailSaver.addObserver(clearAll);
+		mailSaver.addObserver(bridge);
 
-		// When we click on "clear all"
 		clearAll.addObserver(nbReceivedLabel);
 		clearAll.addObserver(mailsListPane);
 		clearAll.addObserver(logsPane);
 		clearAll.addObserver(lastMailPane);
-	}
-
-	/**
-	 * Places all components in the panel.
-	 */
-	private void buildGUI() {
-		// Port / Start server
-		mainPanel.add(portLabel);
-		mainPanel.add(portText.get(), "w 60!");
-		mainPanel.add(startServerBtn.get(), "span, w 165!");
-
-		// Save messages to...
-		mainPanel.add(saveMessages);
-		mainPanel.add(saveMsgTextField.get(), "span, w 230!");
-
-		// Nb received
-		mainPanel.add(receivedLabel);
-		mainPanel.add(nbReceivedLabel.get(), "span");
-
-		// Tab pane
-		tabbedPane.add(mailsListPane.get(), i18n.get("mainpanel.tab.mailslist"));
-		tabbedPane.add(logsPane.get(), i18n.get("mainpanel.tab.smtplog"));
-		tabbedPane.add(lastMailPane.get(), i18n.get("mainpanel.tab.lastmessage"));
-		mainPanel.add(tabbedPane, "span, grow");
-
-		// Clear all
-		mainPanel.add(clearAll.get(), "span, center");
+		clearAll.addObserver(bridge);
 	}
 
 	/**
 	 * Checks command line arguments and toggles components if necessary.
-	 * <p>
-	 * <ul><li>if the user has chosen a different port, then specifies it in the port text field.</li>
-	 * <li>if the user has chosen to auto-start the SMTP server, then it toggles automatically the "start server" button.</li></ul>
-	 * </p>
 	 */
 	private void checkArgs() {
 		ArgsHandler args = ArgsHandler.INSTANCE;
-
 		if (args.getPort() != null) {
 			portText.setText(args.getPort());
 		}
-
 		if (args.shouldStartServerAtLaunch()) {
 			startServerBtn.toggleButton();
 		}
-
 		if (args.memoryModeEnabled()) {
 			saveMsgTextField.get().setEnabled(false);
 		}
@@ -190,18 +165,18 @@ public final class MainPanel {
 	}
 
 	/**
-	 * Returns reference to portText field. Used for saving last values to file
+	 * Returns reference to portText field. Used for saving last values to file.
 	 *
-	 * @return reference to portText field. Used for saving last values to file
+	 * @return reference to portText field.
 	 */
 	public PortTextField getPortText() {
 		return portText;
 	}
 
 	/**
-	 * Returns reference to saveMsgTextField. Used for saving last values to file
-     *
-     * @return reference to saveMsgTextField. Used for saving last values to file
+	 * Returns reference to saveMsgTextField. Used for saving last values to file.
+	 *
+	 * @return reference to saveMsgTextField.
 	 */
 	public SaveMsgField getSaveMsgTextField() {
 		return saveMsgTextField;

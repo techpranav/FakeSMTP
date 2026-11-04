@@ -23,6 +23,9 @@ public final class StartServerButton extends Observable implements Observer {
 	private final I18n i18n = I18n.INSTANCE;
 
 	private final JButton button = new JButton(i18n.get("startsrv.start"));
+	private final JButton stopButton = new JButton(i18n.get("startsrv.stop"));
+	private boolean startFailed;
+	private Runnable beforeToggle;
 
 	/**
 	 * Creates a start button to start the SMTP server.
@@ -37,6 +40,13 @@ public final class StartServerButton extends Observable implements Observer {
 				toggleButton();
 			}
 		});
+		stopButton.setEnabled(false);
+		stopButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				toggleButton();
+			}
+		});
 	}
 
 	/**
@@ -44,25 +54,38 @@ public final class StartServerButton extends Observable implements Observer {
 	 *
 	 * @see PortTextField
 	 */
+	public void setBeforeToggle(Runnable beforeToggle) {
+		this.beforeToggle = beforeToggle;
+	}
+
 	public void toggleButton() {
+		if (beforeToggle != null) {
+			beforeToggle.run();
+		}
+		startFailed = false;
 		try {
 			UIModel.INSTANCE.toggleButton();
 		} catch (InvalidHostException ihe) {
+			startFailed = true;
 			displayError(String.format(i18n.get("startsrv.err.invalidHost"), ihe.getHost()));
 		} catch (InvalidPortException ipe) {
+			startFailed = true;
 			displayError(String.format(i18n.get("startsrv.err.invalidPort")));
 		} catch (BindPortException bpe) {
+			startFailed = true;
 			displayError(String.format(i18n.get("startsrv.err.bound"), bpe.getPort()));
 		} catch (OutOfRangePortException orpe) {
+			startFailed = true;
 			displayError(String.format(i18n.get("startsrv.err.range"), orpe.getPort()));
 		} catch (RuntimeException re) {
+			startFailed = true;
 			displayError(String.format(i18n.get("startsrv.err.default"), re.getMessage()));
 		}
 
-		if (UIModel.INSTANCE.isStarted()) {
-			button.setText(i18n.get("startsrv.started"));
-			button.setEnabled(false);
-		}
+		boolean running = UIModel.INSTANCE.isStarted();
+		button.setText(i18n.get("startsrv.start"));
+		button.setEnabled(!running);
+		stopButton.setEnabled(running);
 		setChanged();
 		notifyObservers();
 	}
@@ -74,6 +97,20 @@ public final class StartServerButton extends Observable implements Observer {
 	 */
 	public JButton get() {
 		return button;
+	}
+
+	/**
+	 * @return the button that stops a running server.
+	 */
+	public JButton getStopButton() {
+		return stopButton;
+	}
+
+	/**
+	 * @return {@code true} when the last attempt to start the server failed.
+	 */
+	public boolean isStartFailed() {
+		return startFailed;
 	}
 
 	/**

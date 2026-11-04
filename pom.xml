@@ -65,6 +65,34 @@
 		    <version>1.4</version>
 		</dependency>
 
+		<!-- FlatLaf: modern look and feel for Swing (light and dark themes) -->
+		<dependency>
+			<groupId>com.formdev</groupId>
+			<artifactId>flatlaf</artifactId>
+			<version>3.5.4</version>
+		</dependency>
+
+		<!-- Flying Saucer: pure Java XHTML/CSS renderer, used to display HTML emails -->
+		<dependency>
+			<groupId>org.xhtmlrenderer</groupId>
+			<artifactId>flying-saucer-core</artifactId>
+			<version>9.1.22</version>
+		</dependency>
+
+		<!-- jsoup: parses and sanitizes real-world HTML before rendering -->
+		<dependency>
+			<groupId>org.jsoup</groupId>
+			<artifactId>jsoup</artifactId>
+			<version>1.17.2</version>
+		</dependency>
+
+		<!-- jsvg: rasterizes SVG charts embedded in HTML emails -->
+		<dependency>
+			<groupId>com.github.weisj</groupId>
+			<artifactId>jsvg</artifactId>
+			<version>1.7.2</version>
+		</dependency>
+
 		<!-- Integration test -->
 		<dependency>
 			<groupId>junit</groupId>
@@ -84,14 +112,25 @@
 		<finalName>fakeSMTP-${project.version}</finalName>
 
 		<plugins>
-			<!-- Use JDK 1.6 -->
+			<!-- Bytecode and API level of the newest JDK installed for this project (Java 21) -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.3</version>
+				<version>3.13.0</version>
 				<configuration>
-					<source>1.6</source>
-					<target>1.6</target>
+					<release>21</release>
+				</configuration>
+			</plugin>
+
+			<!-- Unit tests run headless, as they would on a CI server -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>3.2.5</version>
+				<configuration>
+					<systemPropertyVariables>
+						<java.awt.headless>true</java.awt.headless>
+					</systemPropertyVariables>
 				</configuration>
 			</plugin>
 
@@ -100,6 +139,12 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-failsafe-plugin</artifactId>
 				<version>2.18.1</version>
+				<configuration>
+					<systemPropertyVariables>
+						<java.awt.headless>true</java.awt.headless>
+						<fakesmtp.jar>${project.build.directory}/${project.build.finalName}.jar</fakesmtp.jar>
+					</systemPropertyVariables>
+				</configuration>
 				<executions>
 					<execution>
 						<id>integration-test</id>

@@ -1,0 +1,55 @@
+package com.nilhcem.fakesmtp.gui.inbox;
+
+import java.awt.Window;
+
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.formdev.flatlaf.FlatDarkLaf;
+import com.formdev.flatlaf.FlatLightLaf;
+import com.nilhcem.fakesmtp.core.UISettings;
+
+/**
+ * Installs the light or dark window theme.
+ *
+ * @since 2.1
+ */
+public final class Themes {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(Themes.class);
+
+	private Themes() {
+		throw new UnsupportedOperationException();
+	}
+
+	public static void installSaved() {
+		install(UISettings.INSTANCE.isDarkTheme(), null);
+	}
+
+	public static void install(boolean dark, Window window) {
+		try {
+			if (dark) {
+				FlatDarkLaf.setup();
+				UISettings.INSTANCE.set(UISettings.THEME, UISettings.THEME_DARK);
+			} else {
+				FlatLightLaf.setup();
+				UISettings.INSTANCE.set(UISettings.THEME, UISettings.THEME_LIGHT);
+			}
+			if (window != null) {
+				SwingUtilities.updateComponentTreeUI(window);
+				window.invalidate();
+				window.repaint();
+			}
+		} catch (RuntimeException e) {
+			LOGGER.warn("Could not install the selected theme", e);
+			try {
+				UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+			} catch (Exception ignored) {
+				LOGGER.warn("Could not fall back to the system theme", ignored);
+			}
+		}
+	}
+}
