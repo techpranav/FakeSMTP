@@ -1,6 +1,7 @@
 package com.nilhcem.fakesmtp.gui.inbox;
 
 import java.awt.Component;
+import java.awt.Font;
 import java.io.IOException;
 
 import javax.swing.JCheckBox;
@@ -8,6 +9,7 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +19,7 @@ import com.nilhcem.fakesmtp.core.UISettings;
 import net.miginfocom.swing.MigLayout;
 
 /**
- * Edits inbox preferences and writes them to {@code .mailbox-ui.properties}.
+ * Sectioned preferences dialog. Preserves existing setting keys and files.
  *
  * @since 2.1
  */
@@ -49,7 +51,8 @@ public final class SettingsDialog {
 		if (UISettings.VIEW_TEXT.equals(settings.get(UISettings.DEFAULT_VIEW))) {
 			view.setSelectedIndex(1);
 		}
-		JPanel form = new JPanel(new MigLayout("wrap 1", "[grow]"));
+		JPanel form = new JPanel(new MigLayout("wrap 1, insets 8", "[grow]"));
+		form.add(section(InboxText.get("settings.section.notifications")));
 		form.add(notifications);
 		form.add(preview);
 		form.add(sound);
@@ -59,13 +62,18 @@ public final class SettingsDialog {
 			test.addActionListener(event -> testNotification.run());
 			form.add(test);
 		}
+		form.add(section(InboxText.get("settings.section.display")), "gaptop 10");
 		form.add(images);
 		form.add(new JLabel(InboxText.get("settings.view")));
 		form.add(view, "grow");
 		form.add(newest);
+		form.add(section(InboxText.get("settings.section.storage")), "gaptop 10");
 		form.add(load);
-		form.add(new JLabel("<html><body style='width:280px'>" + InboxText.get("settings.note") + "</body></html>"));
-		int choice = JOptionPane.showConfirmDialog(parent, form, InboxText.get("settings.title"),
+		form.add(new JLabel("<html><body style='width:300px;color:#687386'>" + InboxText.get("settings.note") + "</body></html>"));
+		JScrollPane scroll = new JScrollPane(form);
+		scroll.setBorder(null);
+		scroll.setPreferredSize(new java.awt.Dimension(380, 420));
+		int choice = JOptionPane.showConfirmDialog(parent, scroll, InboxText.get("settings.title"),
 				JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 		if (choice != JOptionPane.OK_OPTION) {
 			return false;
@@ -91,8 +99,14 @@ public final class SettingsDialog {
 		return true;
 	}
 
+	private static JLabel section(String text) {
+		JLabel label = new JLabel(text);
+		label.setFont(label.getFont().deriveFont(Font.BOLD, 13f));
+		label.setForeground(UiTokens.TEXT);
+		return label;
+	}
+
 	private static JCheckBox box(String key, boolean selected) {
-		JCheckBox checkBox = new JCheckBox(InboxText.get(key), selected);
-		return checkBox;
+		return new JCheckBox(InboxText.get(key), selected);
 	}
 }

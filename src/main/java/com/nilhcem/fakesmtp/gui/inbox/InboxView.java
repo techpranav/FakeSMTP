@@ -48,8 +48,8 @@ import net.miginfocom.swing.MigLayout;
 public final class InboxView extends JPanel implements InboxListener, MessageActions {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(InboxView.class);
-	private static final int SIDEBAR_WIDTH = 220;
-	private static final int LIST_WIDTH = 380;
+	private static final int SIDEBAR_WIDTH = UiTokens.SIDEBAR_WIDTH;
+	private static final int LIST_WIDTH = UiTokens.LIST_WIDTH;
 
 	private final LegacyControls controls;
 	private final InboxModel model;
@@ -88,21 +88,24 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 		model.addListener(this);
 		controls.getServer().setBeforeToggle(this::showServerTransition);
 		controls.getServer().addObserver((observable, argument) -> header.syncServerState());
-		list.setMinimumSize(new Dimension(220, 160));
-		reader.setMinimumSize(new Dimension(280, 160));
-		sidebar.setMinimumSize(new Dimension(140, 160));
+		list.setMinimumSize(new Dimension(200, 160));
+		reader.setMinimumSize(new Dimension(360, 160));
+		sidebar.setMinimumSize(new Dimension(160, 160));
 		JSplitPane messages = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, list, reader);
 		messages.setDividerLocation(LIST_WIDTH);
-		messages.setResizeWeight(0.35);
+		// Prefer the reading pane when the window grows.
+		messages.setResizeWeight(0.28);
 		messages.setContinuousLayout(true);
 		messages.setOneTouchExpandable(true);
+		centerCards.setBackground(UiTokens.APP_BG);
 		centerCards.add(messages, "mail");
-		centerCards.add(controls.getLogs().get(), "log");
+		centerCards.add(wrapLogs(controls.getLogs().get()), "log");
 		JSplitPane body = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, sidebar, centerCards);
 		body.setDividerLocation(SIDEBAR_WIDTH);
 		body.setResizeWeight(0);
 		body.setContinuousLayout(true);
 		body.setOneTouchExpandable(true);
+		setBackground(UiTokens.APP_BG);
 		addComponentListener(new ComponentAdapter() {
 			@Override
 			public void componentResized(ComponentEvent event) {
@@ -347,12 +350,27 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 
 	private JPanel statusBar() {
 		JPanel bar = new JPanel(new MigLayout("insets 6 12 6 12", "[][grow,fill]push[][]", "[]"));
+		bar.setOpaque(true);
+		bar.setBackground(UiTokens.SURFACE);
+		bar.setBorder(javax.swing.BorderFactory.createMatteBorder(1, 0, 0, 0, UiTokens.BORDER));
 		bar.add(new JLabel(InboxText.get("status.saving")));
 		bar.add(controls.getSaveDirectory().get(), "wmin 180");
 		bar.add(controls.getReceived().get());
 		bar.add(new JLabel(InboxText.get("status.received")));
 		bar.add(controls.getClearAll().get());
 		return bar;
+	}
+
+	private static JPanel wrapLogs(javax.swing.JComponent logs) {
+		JPanel panel = new JPanel(new BorderLayout());
+		panel.setBackground(UiTokens.SURFACE);
+		JLabel title = new JLabel(InboxText.get("folder.log"));
+		title.setFont(title.getFont().deriveFont(java.awt.Font.BOLD, 14f));
+		title.setBorder(javax.swing.BorderFactory.createEmptyBorder(12, 16, 8, 16));
+		title.setForeground(UiTokens.TEXT);
+		panel.add(title, BorderLayout.NORTH);
+		panel.add(logs, BorderLayout.CENTER);
+		return panel;
 	}
 
 	private void showLog() {

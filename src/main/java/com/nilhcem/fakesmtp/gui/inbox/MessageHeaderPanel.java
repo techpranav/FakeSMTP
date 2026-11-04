@@ -1,6 +1,6 @@
 package com.nilhcem.fakesmtp.gui.inbox;
 
-import java.awt.Color;
+import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Font;
 
@@ -18,18 +18,16 @@ import com.nilhcem.fakesmtp.model.InboxMessage;
 import net.miginfocom.swing.MigLayout;
 
 /**
- * Outlook-style message header: subject plus labeled From / To / Cc / Date rows.
+ * Compact message header chrome. Does not alter HTML body styling.
  *
  * @since 2.1
  */
 public final class MessageHeaderPanel extends JPanel {
 
-	private static final Color LABEL_COLOR = new Color(0x5F6368);
-	private static final Color VALUE_COLOR = new Color(0x202124);
-	private static final Color DIVIDER = new Color(0xE0E3E7);
-	private static final int MAX_ADDRESS_HEIGHT = 64;
+	private static final int MAX_ADDRESS_HEIGHT = 52;
 
 	private final JLabel subject = new JLabel(" ");
+	private final AvatarLabel avatar = new AvatarLabel();
 	private final JLabel fromValue = valueLabel();
 	private final JLabel toValue = valueLabel();
 	private final JLabel ccValue = valueLabel();
@@ -44,25 +42,37 @@ public final class MessageHeaderPanel extends JPanel {
 	private final JPanel dateRow;
 
 	public MessageHeaderPanel() {
-		super(new MigLayout("insets 0, fillx, gap 0 6", "[grow,fill]", "[]10[]2[]2[]2[]2[]2[]"));
+		super(new MigLayout("insets 0, fillx, gap 0 4", "[grow,fill]", "[]8[]2[]2[]2[]2[]2[]"));
 		setOpaque(false);
-		subject.setFont(subject.getFont().deriveFont(Font.BOLD, subject.getFont().getSize() + 7f));
-		subject.setForeground(VALUE_COLOR);
+		subject.setFont(UiTokens.subjectFont(subject.getFont()));
+		subject.setForeground(UiTokens.TEXT);
 		add(subject, "growx, wrap");
-		fromRow = addField(InboxText.get("reader.from"), fromValue, true);
+
+		JPanel identity = new JPanel(new BorderLayout(10, 0));
+		identity.setOpaque(false);
+		identity.add(avatar, BorderLayout.WEST);
+		JPanel identityText = new JPanel(new MigLayout("insets 0, fillx, gap 0 2", "[grow,fill]", "[][]"));
+		identityText.setOpaque(false);
+		fromRow = fieldRow(InboxText.get("reader.from"), fromValue, true);
+		dateRow = fieldRow(InboxText.get("reader.date"), dateValue, false);
+		identityText.add(fromRow, "growx, wrap");
+		identityText.add(dateRow, "growx, wrap");
+		identity.add(identityText, BorderLayout.CENTER);
+		add(identity, "growx, wrap");
+
 		toRow = addField(InboxText.get("reader.to"), toValue, true);
 		ccRow = addField(InboxText.get("reader.cc"), ccValue, true);
 		bccRow = addField(InboxText.get("reader.bcc"), bccValue, true);
 		replyRow = addField(InboxText.get("reader.replyTo"), replyValue, false);
-		dateRow = addField(InboxText.get("reader.date"), dateValue, false);
 		setBorder(BorderFactory.createCompoundBorder(
-				BorderFactory.createMatteBorder(0, 0, 1, 0, DIVIDER),
+				UiTokens.bottomHairline(),
 				BorderFactory.createEmptyBorder(0, 0, 10, 0)));
 	}
 
 	public void showMessage(InboxMessage message) {
 		ParsedEmail parsed = message.getParsed();
 		subject.setText("<html><div style='width:100%'>" + escape(subjectOf(parsed)) + "</div></html>");
+		avatar.setIdentity(parsed.senderLine());
 		fromValue.setText(htmlValue(valueOrUnknown(parsed.senderLine())));
 		toValue.setText(htmlValue(valueOrNone(parsed.recipientLine())));
 		String cc = ParsedEmail.join(parsed.getCc());
@@ -83,11 +93,17 @@ public final class MessageHeaderPanel extends JPanel {
 	}
 
 	private JPanel addField(String labelText, JLabel value, boolean scrollable) {
-		JPanel row = new JPanel(new MigLayout("insets 0, fillx, gap 0 10", "[70!][grow,fill]", "[]"));
+		JPanel row = fieldRow(labelText, value, scrollable);
+		add(row, "growx, wrap");
+		return row;
+	}
+
+	private static JPanel fieldRow(String labelText, JLabel value, boolean scrollable) {
+		JPanel row = new JPanel(new MigLayout("insets 0, fillx, gap 0 10", "[56!][grow,fill]", "[]"));
 		row.setOpaque(false);
 		JLabel label = new JLabel(labelText);
-		label.setForeground(LABEL_COLOR);
-		label.setFont(label.getFont().deriveFont(Font.BOLD));
+		label.setForeground(UiTokens.TEXT_SECONDARY);
+		label.setFont(label.getFont().deriveFont(Font.BOLD, 12f));
 		label.setVerticalAlignment(SwingConstants.TOP);
 		row.add(label, "top");
 		if (scrollable) {
@@ -102,13 +118,12 @@ public final class MessageHeaderPanel extends JPanel {
 		} else {
 			row.add(value, "growx");
 		}
-		add(row, "growx, wrap");
 		return row;
 	}
 
 	private static JLabel valueLabel() {
 		JLabel label = new JLabel(" ");
-		label.setForeground(VALUE_COLOR);
+		label.setForeground(UiTokens.TEXT);
 		label.setVerticalAlignment(SwingConstants.TOP);
 		return label;
 	}

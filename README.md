@@ -140,7 +140,7 @@ Inbox features
 
 Settings live in `~/.mailbox-ui.properties` (legacy `~/.fakeSMTP-ui.properties` is still read). Port and output directory use `~/.mailbox.properties` (legacy `~/.fakeSMTP.properties` is still read).
 
-See [`docs/FEATURES.md`](docs/FEATURES.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/TESTING.md`](docs/TESTING.md), [`docs/BUILD_AND_RELEASE.md`](docs/BUILD_AND_RELEASE.md), and [`docs/ULM_INTEGRATION.md`](docs/ULM_INTEGRATION.md).
+See [`docs/FEATURES.md`](docs/FEATURES.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/TESTING.md`](docs/TESTING.md), [`docs/BUILD_AND_RELEASE.md`](docs/BUILD_AND_RELEASE.md), [`docs/ULM_INTEGRATION.md`](docs/ULM_INTEGRATION.md), and the UI redesign notes in [`docs/UI_DESIGN_SYSTEM.md`](docs/UI_DESIGN_SYSTEM.md) / [`docs/UI_COMPONENT_GUIDE.md`](docs/UI_COMPONENT_GUIDE.md).
 
 
 Notifications

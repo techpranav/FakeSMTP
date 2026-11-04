@@ -23,11 +23,15 @@ public final class EmptyState extends JPanel {
 
 	public EmptyState(String titleText, String body) {
 		super(new BorderLayout());
+		setOpaque(true);
+		setBackground(UiTokens.SURFACE);
 		JPanel box = new JPanel();
 		box.setLayout(new BoxLayout(box, BoxLayout.Y_AXIS));
 		box.setOpaque(false);
 		title.setFont(title.getFont().deriveFont(Font.BOLD, TITLE_SIZE));
+		title.setForeground(UiTokens.TEXT);
 		title.setAlignmentX(CENTER_ALIGNMENT);
+		text.setForeground(UiTokens.TEXT_SECONDARY);
 		text.setAlignmentX(CENTER_ALIGNMENT);
 		box.add(Box.createVerticalGlue());
 		box.add(title);

@@ -2,11 +2,9 @@ package com.nilhcem.fakesmtp.gui.inbox;
 
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.GridBagLayout;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
@@ -36,14 +34,6 @@ import com.nilhcem.fakesmtp.model.SortMode;
  */
 public final class MessageListPanel extends JPanel {
 
-	private static final int ROW_HEIGHT = 88;
-	private static final Color UNREAD_DOT = new Color(0x1A73E8);
-	private static final Color PREVIEW_COLOR = new Color(0x5F6368);
-	private static final Color DATE_COLOR = new Color(0x80868B);
-	private static final Color DIVIDER = new Color(0xE8EAED);
-	private static final Color SELECTED_BG = new Color(0xE8F0FE);
-	private static final Color SELECTED_FG = new Color(0x174EA6);
-
 	private final InboxModel model;
 	private final DefaultListModel<InboxMessage> items = new DefaultListModel<InboxMessage>();
 	private final JList<InboxMessage> list = new JList<InboxMessage>(items);
@@ -55,10 +45,12 @@ public final class MessageListPanel extends JPanel {
 	private Runnable refreshAction;
 
 	public MessageListPanel(InboxModel model, MessageReaderPanel reader) {
-		super(new BorderLayout(0, 8));
+		super(new BorderLayout(0, UiTokens.SPACE_SM));
 		this.model = model;
 		this.reader = reader;
-		setBorder(BorderFactory.createEmptyBorder(10, 10, 8, 6));
+		setOpaque(true);
+		setBackground(UiTokens.SURFACE);
+		setBorder(BorderFactory.createEmptyBorder(UiTokens.SPACE_MD, UiTokens.SPACE_MD, UiTokens.SPACE_SM, UiTokens.SPACE_SM));
 		search.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, InboxText.get("list.search"));
 		search.putClientProperty(FlatClientProperties.STYLE, "arc: 8");
 		search.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
@@ -87,6 +79,7 @@ public final class MessageListPanel extends JPanel {
 		sort.setSelectedIndex(indexOf(model.getSortMode()));
 		sort.addActionListener(event -> model.setSortMode(modeAt(sort.getSelectedIndex())));
 		JButton refresh = new JButton(InboxText.get("list.refresh"));
+		refresh.putClientProperty("JButton.buttonType", "toolBarButton");
 		refresh.addActionListener(event -> {
 			if (refreshAction != null) {
 				refreshAction.run();
@@ -101,9 +94,10 @@ public final class MessageListPanel extends JPanel {
 		toolsRow.add(refresh, BorderLayout.EAST);
 		tools.add(toolsRow, BorderLayout.SOUTH);
 		list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		list.setFixedCellHeight(ROW_HEIGHT);
+		list.setFixedCellHeight(UiTokens.LIST_ROW_HEIGHT);
 		list.setCellRenderer(new RowRenderer());
 		list.setBorder(null);
+		list.setBackground(UiTokens.SURFACE);
 		list.addListSelectionListener(event -> {
 			if (!event.getValueIsAdjusting()) {
 				onSelection();
@@ -111,10 +105,11 @@ public final class MessageListPanel extends JPanel {
 		});
 		JScrollPane listScroll = new JScrollPane(list);
 		listScroll.getVerticalScrollBar().setUnitIncrement(16);
-		listScroll.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, DIVIDER));
+		listScroll.setBorder(UiTokens.bottomHairline());
+		listScroll.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, UiTokens.BORDER));
 		cards.add(listScroll, "list");
 		cards.add(empty, "empty");
-		setMinimumSize(new Dimension(240, 160));
+		setMinimumSize(new Dimension(220, 160));
 		add(tools, BorderLayout.NORTH);
 		add(cards, BorderLayout.CENTER);
 		reload();
@@ -241,9 +236,6 @@ public final class MessageListPanel extends JPanel {
 		return SortMode.NEWEST_FIRST;
 	}
 
-	/**
-	 * One inbox row with sender, time, subject, and preview.
-	 */
 	private static final class RowRenderer implements ListCellRenderer<InboxMessage> {
 
 		private final DefaultListCellRenderer probe = new DefaultListCellRenderer();
@@ -253,74 +245,75 @@ public final class MessageListPanel extends JPanel {
 				int index, boolean selected, boolean focus) {
 			probe.getListCellRendererComponent(list, message, index, selected, focus);
 
-			JPanel row = new JPanel(new BorderLayout(8, 0));
+			JPanel row = new JPanel(new BorderLayout(10, 0));
 			row.setBorder(BorderFactory.createCompoundBorder(
-					BorderFactory.createMatteBorder(0, 0, 1, 0, DIVIDER),
-					BorderFactory.createEmptyBorder(10, 10, 10, 10)));
-			if (selected) {
-				row.setBackground(SELECTED_BG);
-			} else if (index % 2 == 0) {
-				row.setBackground(Color.WHITE);
-			} else {
-				row.setBackground(new Color(0xFAFBFC));
-			}
+					BorderFactory.createMatteBorder(0, 0, 1, 0, UiTokens.BORDER),
+					BorderFactory.createEmptyBorder(10, 8, 10, 8)));
+			row.setBackground(selected ? UiTokens.SELECTED_BG : UiTokens.SURFACE);
 			row.setOpaque(true);
-
-			JPanel unreadMark = new JPanel(new GridBagLayout());
-			unreadMark.setOpaque(false);
-			unreadMark.setPreferredSize(new Dimension(10, 10));
-			JLabel dot = new JLabel(message.isRead() ? " " : "\u25CF");
-			dot.setForeground(UNREAD_DOT);
-			dot.setFont(dot.getFont().deriveFont(10f));
-			unreadMark.add(dot);
-			row.add(unreadMark, BorderLayout.WEST);
 
 			ParsedEmail parsed = message.getParsed();
 			String sender = InboxText.get("reader.unknown");
 			String subject = InboxText.get("reader.nosubject");
 			String preview = "";
-			String clip = "";
-			String flag = "";
-			if (message.isFlagged()) {
-				flag = "\u2605 ";
-			}
+			boolean attachments = false;
 			if (parsed != null) {
 				if (!Texts.isBlank(parsed.senderLine())) {
-					sender = shorten(parsed.senderLine(), 42);
+					sender = shorten(parsed.senderLine(), 36);
 				}
 				if (!Texts.isBlank(parsed.getSubject())) {
-					subject = shorten(parsed.getSubject(), 48);
+					subject = shorten(parsed.getSubject(), 44);
 				}
-				preview = shorten(parsed.getPreview(), 70);
-				if (parsed.hasAttachments()) {
-					clip = " \u2709";
-				}
+				preview = shorten(parsed.getPreview(), 64);
+				attachments = parsed.hasAttachments();
 			}
+
+			AvatarLabel avatar = new AvatarLabel();
+			avatar.setIdentity(parsed == null ? sender : parsed.senderLine());
+			JPanel west = new JPanel(new BorderLayout(6, 0));
+			west.setOpaque(false);
+			if (!message.isRead()) {
+				JLabel dot = new JLabel("\u25CF");
+				dot.setForeground(UiTokens.ACCENT);
+				dot.setFont(dot.getFont().deriveFont(9f));
+				west.add(dot, BorderLayout.WEST);
+			}
+			west.add(avatar, BorderLayout.CENTER);
+			row.add(west, BorderLayout.WEST);
 
 			JPanel text = new JPanel(new BorderLayout(0, 2));
 			text.setOpaque(false);
 			JPanel top = new JPanel(new BorderLayout());
 			top.setOpaque(false);
-			JLabel senderLabel = new JLabel(flag + sender + clip);
-			if (message.isFlagged()) {
-				senderLabel.setForeground(new Color(0xF9AB00));
-			}
+			JLabel senderLabel = new JLabel(sender);
+			senderLabel.setForeground(UiTokens.TEXT);
 			JLabel dateLabel = new JLabel(MailDates.format(message.getReceivedDate()));
-			dateLabel.setFont(dateLabel.getFont().deriveFont(11f));
-			dateLabel.setForeground(DATE_COLOR);
+			dateLabel.setFont(UiTokens.secondaryFont(dateLabel.getFont()));
+			dateLabel.setForeground(UiTokens.TEXT_SECONDARY);
 			JLabel subjectLabel = new JLabel(subject);
+			subjectLabel.setForeground(UiTokens.TEXT);
 			JLabel previewLabel = new JLabel(preview);
-			previewLabel.setFont(previewLabel.getFont().deriveFont(11f));
-			previewLabel.setForeground(PREVIEW_COLOR);
+			previewLabel.setFont(UiTokens.secondaryFont(previewLabel.getFont()));
+			previewLabel.setForeground(UiTokens.TEXT_SECONDARY);
 			if (!message.isRead()) {
 				senderLabel.setFont(senderLabel.getFont().deriveFont(Font.BOLD));
 				subjectLabel.setFont(subjectLabel.getFont().deriveFont(Font.BOLD));
 			}
 			if (selected) {
-				senderLabel.setForeground(SELECTED_FG);
-				subjectLabel.setForeground(SELECTED_FG);
-				previewLabel.setForeground(SELECTED_FG);
-				dateLabel.setForeground(SELECTED_FG);
+				senderLabel.setForeground(UiTokens.SELECTED_FG);
+				subjectLabel.setForeground(UiTokens.SELECTED_FG);
+			}
+			String marks = "";
+			if (message.isFlagged()) {
+				marks += "\u2605 ";
+			}
+			if (attachments) {
+				marks += "\u2709";
+			}
+			if (!marks.isEmpty()) {
+				JLabel mark = new JLabel(marks.trim());
+				mark.setForeground(message.isFlagged() ? UiTokens.STAR : UiTokens.TEXT_SECONDARY);
+				dateLabel.setText(marks.trim() + "  " + dateLabel.getText());
 			}
 			top.add(senderLabel, BorderLayout.CENTER);
 			top.add(dateLabel, BorderLayout.EAST);

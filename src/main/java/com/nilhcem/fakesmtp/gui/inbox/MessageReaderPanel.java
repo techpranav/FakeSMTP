@@ -20,8 +20,10 @@ import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JToggleButton;
@@ -39,7 +41,7 @@ import com.nilhcem.fakesmtp.mail.ParsedEmail;
 import com.nilhcem.fakesmtp.model.InboxMessage;
 
 /**
- * The reading pane: message header, attachments, and HTML, text, header, or raw body.
+ * Reading pane: chrome toolbar + metadata + untouched HTML body.
  *
  * @since 2.1
  */
@@ -47,9 +49,6 @@ public final class MessageReaderPanel extends JPanel {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(MessageReaderPanel.class);
 	private static final int PREVIEW_MAX = 480;
-	private static final int ATTACHMENTS_MAX_HEIGHT = 100;
-	private static final Color TOOLBAR_BG = new Color(0xF8F9FA);
-	private static final Color DIVIDER = new Color(0xE0E3E7);
 
 	private final MessageActions actions;
 	private final CardLayout outer = new CardLayout();
@@ -75,18 +74,17 @@ public final class MessageReaderPanel extends JPanel {
 		super(new BorderLayout());
 		this.actions = actions;
 		setOpaque(true);
-		setBackground(Color.WHITE);
-		setMinimumSize(new Dimension(280, 200));
+		setBackground(UiTokens.SURFACE);
+		setMinimumSize(new Dimension(320, 200));
 		attachmentBox.setLayout(new BoxLayout(attachmentBox, BoxLayout.Y_AXIS));
 		attachmentBox.setOpaque(false);
 		attachmentScroll = new JScrollPane(attachmentBox);
-		attachmentScroll.setBorder(BorderFactory.createEmptyBorder(6, 0, 0, 0));
+		attachmentScroll.setBorder(BorderFactory.createEmptyBorder(8, 0, 0, 0));
 		attachmentScroll.setOpaque(false);
 		attachmentScroll.getViewport().setOpaque(false);
 		attachmentScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 		attachmentScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
-		attachmentScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, ATTACHMENTS_MAX_HEIGHT));
-		attachmentScroll.setPreferredSize(new Dimension(100, 40));
+		attachmentScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 160));
 		htmlView.setLoadImages(() -> {
 			if (current != null) {
 				actions.loadExternalImages(current);
@@ -102,54 +100,52 @@ public final class MessageReaderPanel extends JPanel {
 		headerButton.addActionListener(event -> bodyCards.show(body, "headers"));
 		rawButton.addActionListener(event -> bodyCards.show(body, "raw"));
 		htmlButton.setSelected(true);
+		styleSegment(htmlButton);
+		styleSegment(textButton);
+		styleSegment(headerButton);
+		styleSegment(rawButton);
 		readButton.addActionListener(event -> toggleRead());
 		flagButton.addActionListener(event -> {
 			if (current != null) {
 				actions.toggleFlag(current);
 			}
 		});
-		JButton delete = new JButton(InboxText.get("reader.delete"));
-		delete.addActionListener(event -> {
-			if (current != null) {
-				actions.deleteMessage(current);
-			}
-		});
-		JButton open = new JButton(InboxText.get("reader.open"));
-		open.addActionListener(event -> {
-			if (current != null) {
-				actions.openStoredFile(current);
-			}
-		});
-		JButton copy = new JButton(InboxText.get("reader.copy"));
-		copy.setToolTipText(InboxText.get("reader.copy.tip"));
-		copy.addActionListener(event -> copyCurrent());
-		JButton folder = new JButton(InboxText.get("reader.folder"));
-		folder.addActionListener(event -> actions.openEmailsFolder());
-		JButton markAll = new JButton(InboxText.get("reader.markAllRead"));
-		markAll.addActionListener(event -> actions.markAllRead());
-		JButton saveMsg = new JButton(InboxText.get("reader.saveMsg"));
-		saveMsg.setToolTipText(InboxText.get("reader.saveMsg.tip"));
-		saveMsg.addActionListener(event -> {
+
+		JPopupMenu more = new JPopupMenu();
+		more.add(menuItem(InboxText.get("reader.markAllRead"), () -> actions.markAllRead()));
+		more.add(menuItem(InboxText.get("reader.copy"), this::copyCurrent));
+		more.add(menuItem(InboxText.get("reader.saveMsg"), () -> {
 			if (current != null) {
 				actions.saveAsMsg(current);
 			}
-		});
-		JButton saveEml = new JButton(InboxText.get("reader.saveEml"));
-		saveEml.setToolTipText(InboxText.get("reader.saveEml.tip"));
-		saveEml.addActionListener(event -> {
+		}));
+		more.add(menuItem(InboxText.get("reader.saveEml"), () -> {
 			if (current != null) {
 				actions.saveAsEml(current);
 			}
-		});
-		JButton screenshot = new JButton(InboxText.get("reader.screenshot"));
-		screenshot.setToolTipText(InboxText.get("reader.screenshot.tip"));
-		screenshot.addActionListener(event -> {
+		}));
+		more.add(menuItem(InboxText.get("reader.screenshot"), () -> {
 			if (current != null) {
 				actions.saveScreenshot(current);
 			}
-		});
+		}));
+		more.add(menuItem(InboxText.get("reader.folder"), actions::openEmailsFolder));
+		more.add(menuItem(InboxText.get("reader.open"), () -> {
+			if (current != null) {
+				actions.openStoredFile(current);
+			}
+		}));
+		more.addSeparator();
+		more.add(menuItem(InboxText.get("reader.delete"), () -> {
+			if (current != null) {
+				actions.deleteMessage(current);
+			}
+		}));
+		JButton moreButton = new JButton(InboxText.get("reader.more"));
+		moreButton.putClientProperty("JButton.buttonType", "toolBarButton");
+		moreButton.addActionListener(event -> more.show(moreButton, 0, moreButton.getHeight()));
 
-		JPanel viewGroup = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+		JPanel viewGroup = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
 		viewGroup.setOpaque(false);
 		viewGroup.add(htmlButton);
 		viewGroup.add(textButton);
@@ -157,22 +153,17 @@ public final class MessageReaderPanel extends JPanel {
 		viewGroup.add(rawButton);
 		JPanel actionGroup = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
 		actionGroup.setOpaque(false);
+		readButton.putClientProperty("JButton.buttonType", "toolBarButton");
+		flagButton.putClientProperty("JButton.buttonType", "toolBarButton");
 		actionGroup.add(readButton);
 		actionGroup.add(flagButton);
-		actionGroup.add(markAll);
-		actionGroup.add(copy);
-		actionGroup.add(saveMsg);
-		actionGroup.add(saveEml);
-		actionGroup.add(screenshot);
-		actionGroup.add(folder);
-		actionGroup.add(open);
-		actionGroup.add(delete);
+		actionGroup.add(moreButton);
 		JPanel tools = new JPanel(new BorderLayout());
 		tools.setOpaque(true);
-		tools.setBackground(TOOLBAR_BG);
+		tools.setBackground(UiTokens.APP_BG);
 		tools.setBorder(BorderFactory.createCompoundBorder(
-				BorderFactory.createMatteBorder(0, 0, 1, 0, DIVIDER),
-				BorderFactory.createEmptyBorder(6, 8, 6, 8)));
+				UiTokens.bottomHairline(),
+				BorderFactory.createEmptyBorder(6, 12, 6, 12)));
 		tools.add(viewGroup, BorderLayout.WEST);
 		tools.add(actionGroup, BorderLayout.EAST);
 
@@ -192,22 +183,19 @@ public final class MessageReaderPanel extends JPanel {
 		heading.add(headerPanel);
 		heading.add(attachmentScroll);
 
-		JPanel top = new JPanel(new BorderLayout(0, 0));
-		top.setOpaque(false);
-		top.add(tools, BorderLayout.NORTH);
-		top.add(heading, BorderLayout.CENTER);
-
-		JPanel content = new JPanel(new BorderLayout(0, 0));
-		content.setOpaque(true);
-		content.setBackground(Color.WHITE);
-		content.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
 		JPanel headingPad = new JPanel(new BorderLayout());
 		headingPad.setOpaque(false);
 		headingPad.setBorder(BorderFactory.createEmptyBorder(12, 16, 8, 16));
 		headingPad.add(heading, BorderLayout.CENTER);
-		top.removeAll();
+
+		JPanel top = new JPanel(new BorderLayout());
+		top.setOpaque(false);
 		top.add(tools, BorderLayout.NORTH);
 		top.add(headingPad, BorderLayout.CENTER);
+
+		JPanel content = new JPanel(new BorderLayout());
+		content.setOpaque(true);
+		content.setBackground(UiTokens.SURFACE);
 		content.add(top, BorderLayout.NORTH);
 		content.add(body, BorderLayout.CENTER);
 		outerCards.add(content, "message");
@@ -299,40 +287,95 @@ public final class MessageReaderPanel extends JPanel {
 			return;
 		}
 		attachmentScroll.setVisible(true);
-		JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
-		row.setOpaque(false);
-		row.setAlignmentX(LEFT_ALIGNMENT);
+		JPanel titleRow = new JPanel(new BorderLayout());
+		titleRow.setOpaque(false);
+		titleRow.setAlignmentX(LEFT_ALIGNMENT);
 		JLabel title = new JLabel(InboxText.get("attach.title"));
 		title.setFont(title.getFont().deriveFont(Font.BOLD));
-		row.add(title);
+		title.setForeground(UiTokens.TEXT);
 		JButton saveAll = new JButton(InboxText.get("attach.saveAll"));
+		saveAll.putClientProperty("JButton.buttonType", "toolBarButton");
 		saveAll.addActionListener(event -> saveAll(parsed));
-		row.add(saveAll);
+		titleRow.add(title, BorderLayout.WEST);
+		titleRow.add(saveAll, BorderLayout.EAST);
+		attachmentBox.add(titleRow);
+		attachmentBox.add(Box.createVerticalStrut(6));
+		JPanel cards = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
+		cards.setOpaque(false);
+		cards.setAlignmentX(LEFT_ALIGNMENT);
 		for (MailAttachment attachment : parsed.getAttachments()) {
-			row.add(attachmentChip(attachment));
+			cards.add(attachmentCard(attachment));
 		}
-		attachmentBox.add(row);
+		attachmentBox.add(cards);
 		attachmentBox.revalidate();
 	}
 
-	private JPanel attachmentChip(MailAttachment attachment) {
-		JPanel chip = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
-		chip.setOpaque(true);
-		chip.setBackground(new Color(0xF1F3F4));
-		chip.setBorder(BorderFactory.createCompoundBorder(
-				BorderFactory.createLineBorder(new Color(0xDADCE0)),
-				BorderFactory.createEmptyBorder(2, 6, 2, 4)));
-		chip.add(new JLabel(attachment.getFileName() + " (" + attachment.getSize() + " B)"));
-		JButton preview = new JButton(InboxText.get("attach.preview"));
+	private JPanel attachmentCard(MailAttachment attachment) {
+		JPanel card = new JPanel(new BorderLayout(8, 4));
+		card.setOpaque(true);
+		card.setBackground(UiTokens.APP_BG);
+		card.setBorder(UiTokens.cardBorder());
+		card.setPreferredSize(new Dimension(220, 72));
+		String type = extensionLabel(attachment.getFileName());
+		JLabel icon = new JLabel(type);
+		icon.setOpaque(true);
+		icon.setBackground(UiTokens.AVATAR_BG);
+		icon.setForeground(UiTokens.AVATAR_FG);
+		icon.setFont(icon.getFont().deriveFont(Font.BOLD, 11f));
+		icon.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+		icon.setHorizontalAlignment(JLabel.CENTER);
+		card.add(icon, BorderLayout.WEST);
+		JPanel meta = new JPanel(new BorderLayout());
+		meta.setOpaque(false);
+		JLabel name = new JLabel(attachment.getFileName());
+		name.setForeground(UiTokens.TEXT);
+		JLabel size = new JLabel(attachment.getSize() + " B");
+		size.setForeground(UiTokens.TEXT_SECONDARY);
+		size.setFont(UiTokens.secondaryFont(size.getFont()));
+		meta.add(name, BorderLayout.NORTH);
+		meta.add(size, BorderLayout.SOUTH);
+		card.add(meta, BorderLayout.CENTER);
+		JPanel actionsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
+		actionsRow.setOpaque(false);
+		JButton preview = tiny(InboxText.get("attach.preview"));
 		preview.addActionListener(event -> previewAttachment(attachment));
-		JButton save = new JButton(InboxText.get("attach.save"));
+		JButton save = tiny(InboxText.get("attach.save"));
 		save.addActionListener(event -> saveOne(attachment));
-		JButton open = new JButton(InboxText.get("attach.open"));
+		JButton open = tiny(InboxText.get("attach.open"));
 		open.addActionListener(event -> openAttachment(attachment));
-		chip.add(preview);
-		chip.add(save);
-		chip.add(open);
-		return chip;
+		actionsRow.add(preview);
+		actionsRow.add(save);
+		actionsRow.add(open);
+		card.add(actionsRow, BorderLayout.SOUTH);
+		return card;
+	}
+
+	private static String extensionLabel(String name) {
+		if (Texts.isBlank(name) || !name.contains(".")) {
+			return "FILE";
+		}
+		String ext = name.substring(name.lastIndexOf('.') + 1).toUpperCase(java.util.Locale.ROOT);
+		if (ext.length() > 4) {
+			ext = ext.substring(0, 4);
+		}
+		return ext;
+	}
+
+	private static JButton tiny(String text) {
+		JButton button = new JButton(text);
+		button.putClientProperty("JButton.buttonType", "toolBarButton");
+		button.setFont(button.getFont().deriveFont(11f));
+		return button;
+	}
+
+	private static void styleSegment(JToggleButton button) {
+		button.putClientProperty("JButton.buttonType", "toolBarButton");
+	}
+
+	private static JMenuItem menuItem(String text, Runnable action) {
+		JMenuItem item = new JMenuItem(text);
+		item.addActionListener(event -> action.run());
+		return item;
 	}
 
 	private void saveOne(MailAttachment attachment) {

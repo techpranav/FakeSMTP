@@ -38,6 +38,10 @@ public final class Themes {
 				FlatLightLaf.setup();
 				UISettings.INSTANCE.set(UISettings.THEME, UISettings.THEME_LIGHT);
 			}
+			UIManager.put("Component.arc", Integer.valueOf(UiTokens.RADIUS));
+			UIManager.put("Button.arc", Integer.valueOf(UiTokens.RADIUS));
+			UIManager.put("TextComponent.arc", Integer.valueOf(UiTokens.RADIUS));
+			UIManager.put("Component.focusWidth", Integer.valueOf(1));
 			if (window != null) {
 				SwingUtilities.updateComponentTreeUI(window);
 				window.invalidate();

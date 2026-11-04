@@ -2,7 +2,9 @@ package com.nilhcem.fakesmtp.gui.inbox;
 
 import com.nilhcem.fakesmtp.core.Texts;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.io.IOException;
 
@@ -23,14 +25,13 @@ import com.nilhcem.fakesmtp.model.UIModel;
 import net.miginfocom.swing.MigLayout;
 
 /**
- * The top bar: application name, server status, port, and window actions.
+ * Compact application chrome: brand, secondary SMTP status, and window actions.
  *
  * @since 2.1
  */
 public final class InboxHeader extends JPanel {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(InboxHeader.class);
-	private static final int STATUS_PAD = 8;
 
 	private final LegacyControls controls;
 	private final JLabel status = new JLabel(" ", SwingConstants.CENTER);
@@ -44,43 +45,58 @@ public final class InboxHeader extends JPanel {
 	private Runnable testEmailAction;
 
 	public InboxHeader(LegacyControls controls) {
-		super(new MigLayout("insets 10 14 10 14", "[]12[]12[]8[]8[]8[]8[]push[]8[]8[]8[]", "[]"));
+		super(new MigLayout("insets 10 16 10 16", "[]16[grow][]", "[]"));
 		this.controls = controls;
 		setOpaque(true);
-		setBackground(new Color(0xFFFFFF));
-		setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(0xE0E3E7)));
+		setBackground(UiTokens.SURFACE);
+		setBorder(UiTokens.bottomHairline());
+		setPreferredSize(new Dimension(10, UiTokens.HEADER_HEIGHT));
+
 		JLabel brand = new JLabel(InboxText.get("header.brand"));
-		brand.setFont(brand.getFont().deriveFont(Font.BOLD, brand.getFont().getSize() + 4f));
-		brand.setForeground(new Color(0x0F766E));
+		brand.setFont(UiTokens.brandFont(brand.getFont()));
+		brand.setForeground(UiTokens.ACCENT);
 		JLabel tagline = new JLabel(InboxText.get("header.tagline"));
-		tagline.setForeground(new Color(0x5F6368));
-		tagline.setFont(tagline.getFont().deriveFont(Font.PLAIN, Math.max(10f, tagline.getFont().getSize() - 1f)));
-		JPanel brandBlock = new JPanel(new java.awt.BorderLayout(0, 0));
+		tagline.setForeground(UiTokens.TEXT_SECONDARY);
+		tagline.setFont(UiTokens.secondaryFont(tagline.getFont()));
+		JPanel brandBlock = new JPanel(new BorderLayout(0, 0));
 		brandBlock.setOpaque(false);
-		brandBlock.add(brand, java.awt.BorderLayout.NORTH);
-		brandBlock.add(tagline, java.awt.BorderLayout.SOUTH);
+		brandBlock.add(brand, BorderLayout.NORTH);
+		brandBlock.add(tagline, BorderLayout.SOUTH);
+
 		status.setOpaque(true);
-		status.setBorder(BorderFactory.createEmptyBorder(4, STATUS_PAD, 4, STATUS_PAD));
+		status.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
 		status.putClientProperty("JComponent.roundRect", Boolean.TRUE);
-		controls.getPort().get().setColumns(5);
-		JButton settings = new JButton(InboxText.get("header.settings"));
-		settings.addActionListener(event -> {
-			if (settingsAction != null) {
-				settingsAction.run();
+		controls.getPort().get().setColumns(4);
+		controls.getPort().get().putClientProperty("JComponent.roundRect", Boolean.TRUE);
+
+		JPanel smtp = new JPanel(new MigLayout("insets 0, gap 6", "[][][][][][]", "[]"));
+		smtp.setOpaque(false);
+		smtp.add(status);
+		smtp.add(new JLabel(InboxText.get("header.port")));
+		smtp.add(controls.getPort().get(), "w 64!");
+		smtp.add(controls.getServer().get());
+		smtp.add(controls.getServer().getStopButton());
+		JButton testEmail = quietButton(InboxText.get("header.testEmail"));
+		testEmail.setToolTipText(InboxText.get("header.testEmail.tip"));
+		testEmail.addActionListener(event -> {
+			if (testEmailAction != null) {
+				testEmailAction.run();
 			}
 		});
-		JButton copyConnection = new JButton(InboxText.get("header.copyConnection"));
+		JButton copyConnection = quietButton(InboxText.get("header.copyConnection"));
 		copyConnection.setToolTipText(InboxText.get("header.copyConnection.tip"));
 		copyConnection.addActionListener(event -> {
 			if (copyConnectionAction != null) {
 				copyConnectionAction.run();
 			}
 		});
-		JButton testEmail = new JButton(InboxText.get("header.testEmail"));
-		testEmail.setToolTipText(InboxText.get("header.testEmail.tip"));
-		testEmail.addActionListener(event -> {
-			if (testEmailAction != null) {
-				testEmailAction.run();
+		smtp.add(testEmail);
+		smtp.add(copyConnection);
+
+		JButton settings = quietButton(InboxText.get("header.settings"));
+		settings.addActionListener(event -> {
+			if (settingsAction != null) {
+				settingsAction.run();
 			}
 		});
 		notifications.setSelected(UISettings.INSTANCE.getBoolean(UISettings.NOTIFICATIONS_ENABLED));
@@ -93,18 +109,23 @@ public final class InboxHeader extends JPanel {
 				themeChanged.run();
 			}
 		});
+
+		JPanel actions = new JPanel(new MigLayout("insets 0, gap 6", "[][][]", "[]"));
+		actions.setOpaque(false);
+		actions.add(notifications);
+		actions.add(theme);
+		actions.add(settings);
+
 		add(brandBlock);
-		add(status);
-		add(new JLabel(InboxText.get("header.port")));
-		add(controls.getPort().get(), "w 72!");
-		add(controls.getServer().get(), "sg server");
-		add(controls.getServer().getStopButton(), "sg server");
-		add(testEmail);
-		add(copyConnection);
-		add(notifications);
-		add(theme);
-		add(settings);
+		add(smtp, "grow");
+		add(actions);
 		syncServerState();
+	}
+
+	private static JButton quietButton(String text) {
+		JButton button = new JButton(text);
+		button.putClientProperty("JButton.buttonType", "toolBarButton");
+		return button;
 	}
 
 	public void setSettingsAction(Runnable settingsAction) {
@@ -130,30 +151,33 @@ public final class InboxHeader extends JPanel {
 	public void syncServerState() {
 		boolean running = UIModel.INSTANCE.isStarted();
 		String text = InboxText.get("header.status.stopped");
-		Color background = new Color(0xF1F3F4);
-		Color foreground = new Color(0x5F6368);
+		Color background = UiTokens.MUTED_BG;
+		Color foreground = UiTokens.TEXT_SECONDARY;
 		if (controls.getServer().isStartFailed() && !running) {
-			text = InboxText.get("header.status.error");
-			background = new Color(0xFCE8E6);
-			foreground = new Color(0xC5221F);
+			text = "\u25CF  " + InboxText.get("header.status.error");
+			background = UiTokens.ERROR_BG;
+			foreground = UiTokens.ERROR_FG;
 		} else if (running) {
-			text = InboxText.get("header.status.running");
 			String port = controls.getPort().get().getText();
+			text = "\u25CF  " + InboxText.get("header.status.running");
 			if (!Texts.isBlank(port)) {
-				text = text + "  " + port;
+				text = text + "  :" + port.trim();
 			}
-			background = new Color(0xE6F4EA);
-			foreground = new Color(0x137333);
+			background = UiTokens.SUCCESS_BG;
+			foreground = UiTokens.SUCCESS_FG;
+		} else {
+			text = "\u25CF  " + text;
 		}
-		status.setText("  " + text + "  ");
+		status.setText(text);
 		status.setBackground(background);
 		status.setForeground(foreground);
+		status.setFont(status.getFont().deriveFont(Font.BOLD, 12f));
 	}
 
 	public void showTransientStatus(String key) {
-		status.setText("  " + InboxText.get(key) + "  ");
-		status.setBackground(new Color(0xFEF7E0));
-		status.setForeground(new Color(0xB06000));
+		status.setText("\u25CF  " + InboxText.get(key));
+		status.setBackground(UiTokens.WARNING_BG);
+		status.setForeground(UiTokens.WARNING_FG);
 		status.paintImmediately(status.getVisibleRect());
 	}
 
