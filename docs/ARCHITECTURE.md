@@ -33,7 +33,9 @@ SMTP client
 
 JavaMail reads the MIME message (including quoted-printable). jsoup removes scripts, event handlers, forms, and external stylesheets. Remote images are removed unless the user allows them, and even then only an HTTP or HTTPS `image/*` response is downloaded, with redirects disabled. SVG elements are drawn to PNG by jsvg and embedded as data URLs. Flying Saucer paints the result. Its user agent serves only `cid:` parts and `data:` images.
 
-Links open only for `http`, `https`, and `mailto`.
+Links open only for `http`, `https`, and `mailto`. Forms stay visible with controls disabled so mail that contains approval buttons still looks complete without posting anywhere.
+
+The reading pane tracks the viewport width so HTML reflows when the window is maximized or resized, and the body scrolls independently of the subject and address header.
 
 ## Preferences
 

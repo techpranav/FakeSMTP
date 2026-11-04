@@ -2,22 +2,26 @@ package com.nilhcem.fakesmtp.gui.inbox;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.SwingUtilities;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xhtmlrenderer.simple.XHTMLPanel;
 import org.xhtmlrenderer.swing.BasicPanel;
 import org.xhtmlrenderer.swing.LinkListener;
 
 import com.nilhcem.fakesmtp.mail.HtmlRenderer;
 import com.nilhcem.fakesmtp.mail.MailUserAgent;
 import com.nilhcem.fakesmtp.mail.ParsedEmail;
+import com.nilhcem.fakesmtp.mail.ScrollableHtmlPanel;
 
 /**
  * Shows the HTML body of one message, or the plain text when rendering fails.
@@ -29,7 +33,7 @@ public final class HtmlEmailView extends JPanel {
 	private static final Logger LOGGER = LoggerFactory.getLogger(HtmlEmailView.class);
 
 	private final MailUserAgent agent = new MailUserAgent();
-	private final XHTMLPanel htmlPanel;
+	private final ScrollableHtmlPanel htmlPanel;
 	private final JScrollPane htmlScroll;
 	private final JTextArea fallback = new JTextArea();
 	private final JPanel cards = new JPanel(new java.awt.CardLayout());
@@ -46,8 +50,16 @@ public final class HtmlEmailView extends JPanel {
 			}
 		});
 		htmlScroll = new JScrollPane(htmlPanel);
-		htmlScroll.getViewport().setBackground(Color.WHITE);
 		htmlScroll.setBorder(null);
+		htmlScroll.getViewport().setBackground(Color.WHITE);
+		htmlScroll.getVerticalScrollBar().setUnitIncrement(16);
+		htmlScroll.getHorizontalScrollBar().setUnitIncrement(16);
+		htmlScroll.getViewport().addComponentListener(new ComponentAdapter() {
+			@Override
+			public void componentResized(ComponentEvent event) {
+				reflowHtml();
+			}
+		});
 		fallback.setEditable(false);
 		fallback.setLineWrap(true);
 		fallback.setWrapStyleWord(true);
@@ -80,12 +92,27 @@ public final class HtmlEmailView extends JPanel {
 		try {
 			HtmlRenderer.show(htmlPanel, agent, email);
 			((java.awt.CardLayout) cards.getLayout()).show(cards, "html");
-			htmlPanel.revalidate();
-			htmlScroll.revalidate();
+			SwingUtilities.invokeLater(this::reflowHtml);
 		} catch (Exception e) {
 			LOGGER.warn("HTML rendering failed", e);
 			showFallback(email, InboxText.get("reader.render.failed"));
 		}
+	}
+
+	private void reflowHtml() {
+		int width = htmlScroll.getViewport().getExtentSize().width;
+		if (width <= 0) {
+			return;
+		}
+		Dimension preferred = htmlPanel.getPreferredSize();
+		int height = preferred.height;
+		if (height < htmlScroll.getViewport().getExtentSize().height) {
+			height = htmlScroll.getViewport().getExtentSize().height;
+		}
+		htmlPanel.setPreferredSize(new Dimension(width, height));
+		htmlPanel.revalidate();
+		htmlScroll.revalidate();
+		htmlScroll.repaint();
 	}
 
 	private void showFallback(ParsedEmail email, String note) {

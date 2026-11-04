@@ -15,9 +15,9 @@ The window is a mail client layout: header, sidebar, message list, and reading p
 
 ## HTML
 
-HTML and multipart messages are shown as laid-out mail, including tables, inline CSS, `cid:` images, data-URL images, and SVG charts (drawn as PNG). Plain text is available beside the HTML. A broken message falls back to plain text or the raw source and does not stop the server.
+HTML and multipart messages are shown like a desktop mail client: tables, links, inline CSS, forms (display-only, controls disabled), `cid:` images, data-URL images, and SVG charts (drawn as PNG). The reading pane scrolls and reflows when the window is resized. Plain text is available beside the HTML. A broken message falls back to plain text or the raw source and does not stop the server.
 
-JavaScript is not executed. Remote images stay blocked until the user clicks **Load images** or enables them in settings. `file:` and `javascript:` URLs are not loaded.
+JavaScript is not executed. Form submit and active controls are disabled. Remote images stay blocked until the user clicks **Load images** or enables them in settings. `file:` and `javascript:` URLs are not loaded. Only `http`, `https`, and `mailto` links open in the browser.
 
 The overdue-approval sample renders like this:
 

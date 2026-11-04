@@ -35,10 +35,20 @@ public final class HtmlPreprocessor {
 	private static final int READ_TIMEOUT_MS = 6000;
 	private static final int MAX_IMAGE_BYTES = 2_000_000;
 	private static final String[] REMOVED_TAGS = {
-		"script", "iframe", "object", "embed", "applet", "link", "meta", "base", "form"
+		"script", "iframe", "object", "embed", "applet", "link", "meta", "base"
 	};
-	private static final String DOCUMENT_STYLE = "body{margin:0;padding:16px;background:#ffffff;color:#202124;"
-			+ "font-family:Arial,sans-serif;font-size:13px;} a{color:#1a73e8;} img{max-width:100%;height:auto;}";
+	private static final String DOCUMENT_STYLE = "body{margin:0;padding:16px;background:#ffffff;color:#000000;"
+			+ "font-family:Calibri,Arial,Helvetica,sans-serif;font-size:12pt;line-height:1.35;}"
+			+ "a{color:#0563C1;text-decoration:underline;}"
+			+ "table{border-collapse:collapse;border-spacing:0;max-width:100%;}"
+			+ "th,td{vertical-align:top;}"
+			+ "img{max-width:100%;height:auto;border:0;}"
+			+ "p{margin:0 0 8px 0;}"
+			+ "ul,ol{margin:0 0 8px 24px;padding:0;}"
+			+ "blockquote{margin:8px 0;padding-left:12px;border-left:3px solid #c7c7c7;color:#333333;}"
+			+ "hr{border:0;border-top:1px solid #c7c7c7;margin:12px 0;}"
+			+ "pre,code{font-family:Consolas,monospace;font-size:11pt;}"
+			+ "form{margin:0;padding:0;}";
 
 	private HtmlPreprocessor() {
 		throw new UnsupportedOperationException();
@@ -55,6 +65,7 @@ public final class HtmlPreprocessor {
 			document.select(tag).remove();
 		}
 		stripActiveContent(document);
+		disableForms(document);
 		replaceSvg(document);
 		int blocked = rewriteImages(document, loadRemoteImages);
 		Element style = document.createElement("style");
@@ -84,6 +95,17 @@ public final class HtmlPreprocessor {
 		String value = element.attr(attribute).trim().toLowerCase(Locale.ROOT);
 		if (value.startsWith("javascript:") || value.startsWith("vbscript:") || value.startsWith("data:text/html")) {
 			element.removeAttr(attribute);
+		}
+	}
+
+	private static void disableForms(Document document) {
+		for (Element form : document.select("form")) {
+			form.removeAttr("action");
+			form.removeAttr("method");
+			form.removeAttr("target");
+		}
+		for (Element control : document.select("input, button, select, textarea")) {
+			control.attr("disabled", "disabled");
 		}
 	}
 

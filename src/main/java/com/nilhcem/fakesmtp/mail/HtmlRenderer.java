@@ -1,6 +1,7 @@
 package com.nilhcem.fakesmtp.mail;
 
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
@@ -20,8 +21,8 @@ public final class HtmlRenderer {
 		throw new UnsupportedOperationException();
 	}
 
-	public static XHTMLPanel createPanel(MailUserAgent agent) {
-		XHTMLPanel panel = new XHTMLPanel(agent);
+	public static ScrollableHtmlPanel createPanel(MailUserAgent agent) {
+		ScrollableHtmlPanel panel = new ScrollableHtmlPanel(agent);
 		panel.setInteractive(true);
 		panel.setBackground(Color.WHITE);
 		removeDefaultLinks(panel);
@@ -47,9 +48,10 @@ public final class HtmlRenderer {
 	 */
 	public static BufferedImage render(ParsedEmail email, int width, int height) {
 		MailUserAgent agent = new MailUserAgent();
-		XHTMLPanel panel = createPanel(agent);
+		ScrollableHtmlPanel panel = createPanel(agent);
 		show(panel, agent, email);
-		panel.setSize(width, height);
+		panel.setSize(new Dimension(width, height));
+		panel.doLayout();
 		BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 		Graphics2D graphics = image.createGraphics();
 		try {

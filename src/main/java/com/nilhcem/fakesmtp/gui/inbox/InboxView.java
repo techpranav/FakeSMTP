@@ -2,7 +2,10 @@ package com.nilhcem.fakesmtp.gui.inbox;
 
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Dimension;
 import java.awt.Frame;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
@@ -12,6 +15,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
+import javax.swing.SwingUtilities;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,16 +77,34 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 		model.addListener(this);
 		controls.getServer().setBeforeToggle(this::showServerTransition);
 		controls.getServer().addObserver((observable, argument) -> header.syncServerState());
+		list.setMinimumSize(new Dimension(220, 160));
+		reader.setMinimumSize(new Dimension(280, 160));
+		sidebar.setMinimumSize(new Dimension(140, 160));
 		JSplitPane messages = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, list, reader);
 		messages.setDividerLocation(LIST_WIDTH);
-		messages.setResizeWeight(0.32);
+		messages.setResizeWeight(0.35);
 		messages.setContinuousLayout(true);
+		messages.setOneTouchExpandable(true);
 		centerCards.add(messages, "mail");
 		centerCards.add(controls.getLogs().get(), "log");
 		JSplitPane body = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, sidebar, centerCards);
 		body.setDividerLocation(SIDEBAR_WIDTH);
 		body.setResizeWeight(0);
 		body.setContinuousLayout(true);
+		body.setOneTouchExpandable(true);
+		addComponentListener(new ComponentAdapter() {
+			@Override
+			public void componentResized(ComponentEvent event) {
+				SwingUtilities.invokeLater(() -> {
+					body.revalidate();
+					messages.revalidate();
+					reader.revalidate();
+					list.revalidate();
+					revalidate();
+					repaint();
+				});
+			}
+		});
 		add(header, BorderLayout.NORTH);
 		add(body, BorderLayout.CENTER);
 		JPanel south = new JPanel(new BorderLayout());

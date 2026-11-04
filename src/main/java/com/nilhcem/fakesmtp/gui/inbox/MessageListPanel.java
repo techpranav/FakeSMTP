@@ -3,6 +3,7 @@ package com.nilhcem.fakesmtp.gui.inbox;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.Font;
 
 import javax.swing.BorderFactory;
@@ -91,8 +92,12 @@ public final class MessageListPanel extends JPanel {
 				onSelection();
 			}
 		});
-		cards.add(new JScrollPane(list), "list");
+		JScrollPane listScroll = new JScrollPane(list);
+		listScroll.getVerticalScrollBar().setUnitIncrement(16);
+		listScroll.setBorder(null);
+		cards.add(listScroll, "list");
 		cards.add(empty, "empty");
+		setMinimumSize(new Dimension(220, 160));
 		add(tools, BorderLayout.NORTH);
 		add(cards, BorderLayout.CENTER);
 		reload();

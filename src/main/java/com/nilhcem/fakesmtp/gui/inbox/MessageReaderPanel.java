@@ -23,6 +23,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JToggleButton;
+import javax.swing.ScrollPaneConstants;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +44,8 @@ public final class MessageReaderPanel extends JPanel {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(MessageReaderPanel.class);
 	private static final int PREVIEW_MAX = 480;
+	private static final int DETAILS_MAX_HEIGHT = 120;
+	private static final int ATTACHMENTS_MAX_HEIGHT = 120;
 
 	private final MessageActions actions;
 	private final CardLayout outer = new CardLayout();
@@ -51,7 +54,9 @@ public final class MessageReaderPanel extends JPanel {
 	private final JPanel body = new JPanel(bodyCards);
 	private final JLabel subject = new JLabel(" ");
 	private final JTextArea details = new JTextArea();
+	private final JScrollPane detailsScroll;
 	private final JPanel attachmentBox = new JPanel();
+	private final JScrollPane attachmentScroll;
 	private final HtmlEmailView htmlView = new HtmlEmailView();
 	private final JTextArea plain = area();
 	private final JTextArea headers = area();
@@ -66,12 +71,28 @@ public final class MessageReaderPanel extends JPanel {
 	public MessageReaderPanel(MessageActions actions) {
 		super(new BorderLayout());
 		this.actions = actions;
+		setMinimumSize(new Dimension(240, 200));
 		subject.setFont(subject.getFont().deriveFont(Font.BOLD, subject.getFont().getSize() + 6f));
 		details.setEditable(false);
 		details.setLineWrap(true);
 		details.setWrapStyleWord(true);
 		details.setOpaque(false);
+		details.setBorder(BorderFactory.createEmptyBorder(0, 2, 0, 2));
+		detailsScroll = new JScrollPane(details);
+		detailsScroll.setBorder(null);
+		detailsScroll.setOpaque(false);
+		detailsScroll.getViewport().setOpaque(false);
+		detailsScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+		detailsScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+		detailsScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, DETAILS_MAX_HEIGHT));
+		detailsScroll.setPreferredSize(new Dimension(100, 72));
 		attachmentBox.setLayout(new BoxLayout(attachmentBox, BoxLayout.Y_AXIS));
+		attachmentScroll = new JScrollPane(attachmentBox);
+		attachmentScroll.setBorder(null);
+		attachmentScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+		attachmentScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+		attachmentScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, ATTACHMENTS_MAX_HEIGHT));
+		attachmentScroll.setPreferredSize(new Dimension(100, 48));
 		htmlView.setLoadImages(() -> {
 			if (current != null) {
 				actions.loadExternalImages(current);
@@ -101,6 +122,7 @@ public final class MessageReaderPanel extends JPanel {
 			}
 		});
 		JPanel tools = new JPanel();
+		tools.setOpaque(false);
 		tools.add(htmlButton);
 		tools.add(textButton);
 		tools.add(headerButton);
@@ -108,20 +130,28 @@ public final class MessageReaderPanel extends JPanel {
 		tools.add(readButton);
 		tools.add(delete);
 		tools.add(open);
+		body.setMinimumSize(new Dimension(200, 120));
 		body.add(htmlView, "html");
 		body.add(scroll(plain), "text");
 		body.add(scroll(headers), "headers");
 		body.add(scroll(raw), "raw");
-		JPanel content = new JPanel(new BorderLayout(0, 8));
-		content.setBorder(BorderFactory.createEmptyBorder(12, 16, 12, 16));
-		JPanel heading = new JPanel(new BorderLayout(0, 8));
-		heading.add(subject, BorderLayout.NORTH);
-		heading.add(details, BorderLayout.CENTER);
-		heading.add(attachmentBox, BorderLayout.SOUTH);
+		JPanel heading = new JPanel();
+		heading.setOpaque(false);
+		heading.setLayout(new BoxLayout(heading, BoxLayout.Y_AXIS));
+		subject.setAlignmentX(LEFT_ALIGNMENT);
+		detailsScroll.setAlignmentX(LEFT_ALIGNMENT);
+		attachmentScroll.setAlignmentX(LEFT_ALIGNMENT);
+		heading.add(subject);
+		heading.add(Box.createVerticalStrut(6));
+		heading.add(detailsScroll);
+		heading.add(Box.createVerticalStrut(6));
+		heading.add(attachmentScroll);
 		JPanel top = new JPanel(new BorderLayout(0, 8));
 		top.setOpaque(false);
 		top.add(tools, BorderLayout.NORTH);
 		top.add(heading, BorderLayout.CENTER);
+		JPanel content = new JPanel(new BorderLayout(0, 8));
+		content.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
 		content.add(top, BorderLayout.NORTH);
 		content.add(body, BorderLayout.CENTER);
 		outerCards.add(content, "message");
@@ -145,6 +175,7 @@ public final class MessageReaderPanel extends JPanel {
 		ParsedEmail parsed = message.getParsed();
 		subject.setText("<html>" + escape(subjectOf(parsed)) + "</html>");
 		details.setText(detailText(parsed, message));
+		details.setCaretPosition(0);
 		plain.setText(parsed.getPlainText());
 		plain.setCaretPosition(0);
 		headers.setText(headerText(parsed));
@@ -168,6 +199,8 @@ public final class MessageReaderPanel extends JPanel {
 			}
 		}
 		outer.show(outerCards, "message");
+		revalidate();
+		repaint();
 	}
 
 	private void toggleRead() {
@@ -180,10 +213,11 @@ public final class MessageReaderPanel extends JPanel {
 	private void fillAttachments(ParsedEmail parsed) {
 		attachmentBox.removeAll();
 		if (!parsed.hasAttachments()) {
-			attachmentBox.add(new JLabel(InboxText.get("attach.none")));
+			attachmentScroll.setVisible(false);
 			attachmentBox.revalidate();
 			return;
 		}
+		attachmentScroll.setVisible(true);
 		JButton saveAll = new JButton(InboxText.get("attach.saveAll"));
 		saveAll.setAlignmentX(LEFT_ALIGNMENT);
 		saveAll.addActionListener(event -> saveAll(parsed));
@@ -349,6 +383,7 @@ public final class MessageReaderPanel extends JPanel {
 	private static JScrollPane scroll(JTextArea area) {
 		JScrollPane pane = new JScrollPane(area);
 		pane.setBorder(null);
+		pane.getVerticalScrollBar().setUnitIncrement(16);
 		return pane;
 	}
 }

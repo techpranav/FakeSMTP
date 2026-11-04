@@ -1,8 +1,11 @@
 package com.nilhcem.fakesmtp.integration;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 
 import com.nilhcem.fakesmtp.core.Configuration;
 import com.nilhcem.fakesmtp.core.exception.BindPortException;
@@ -29,7 +32,7 @@ public final class SendEmailsIT {
 	@BeforeClass
 	public static void displayInfo() throws BindPortException, OutOfRangePortException {
 		logger.info("Launching integration tests...");
-		if (portOpen()) {
+		if (smtpReady()) {
 			logger.info("Using the SMTP server already listening on port {}.", TestConfig.PORT_INTEGRATION_TESTS);
 			return;
 		}
@@ -45,10 +48,13 @@ public final class SendEmailsIT {
 		}
 	}
 
-	private static boolean portOpen() {
+	private static boolean smtpReady() {
 		try (Socket socket = new Socket()) {
-			socket.connect(new InetSocketAddress(TestConfig.HOST, TestConfig.PORT_INTEGRATION_TESTS), 300);
-			return true;
+			socket.connect(new InetSocketAddress(TestConfig.HOST, TestConfig.PORT_INTEGRATION_TESTS), 500);
+			socket.setSoTimeout(1000);
+			BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.US_ASCII));
+			String line = reader.readLine();
+			return line != null && line.startsWith("220");
 		} catch (Exception e) {
 			return false;
 		}
@@ -59,7 +65,6 @@ public final class SendEmailsIT {
 		Email email = new SimpleEmail();
 		email.setHostName(TestConfig.HOST);
 		email.setSmtpPort(TestConfig.PORT_INTEGRATION_TESTS);
-		email.setStartTLSEnabled(true);
 		email.setFrom("user@gmail.com");
 		email.setSubject("Simple email");
 		email.setMsg("This is a simple plain text email :-)");
