@@ -1,14 +1,14 @@
 package com.nilhcem.fakesmtp.gui.inbox;
 
 import java.awt.BorderLayout;
-import java.awt.Dimension;
+import java.awt.Cursor;
 import java.awt.Font;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
 
 import com.nilhcem.fakesmtp.core.Texts;
@@ -18,114 +18,123 @@ import com.nilhcem.fakesmtp.model.InboxMessage;
 import net.miginfocom.swing.MigLayout;
 
 /**
- * Compact message header chrome. Does not alter HTML body styling.
+ * Compact Outlook-style header. Keeps meta chrome tight so the email body starts sooner.
  *
  * @since 2.1
  */
 public final class MessageHeaderPanel extends JPanel {
 
-	private static final int MAX_ADDRESS_HEIGHT = 52;
-
 	private final JLabel subject = new JLabel(" ");
 	private final AvatarLabel avatar = new AvatarLabel();
-	private final JLabel fromValue = valueLabel();
-	private final JLabel toValue = valueLabel();
-	private final JLabel ccValue = valueLabel();
-	private final JLabel bccValue = valueLabel();
-	private final JLabel replyValue = valueLabel();
-	private final JLabel dateValue = valueLabel();
-	private final JPanel fromRow;
-	private final JPanel toRow;
-	private final JPanel ccRow;
-	private final JPanel bccRow;
-	private final JPanel replyRow;
-	private final JPanel dateRow;
+	private final JLabel sender = new JLabel(" ");
+	private final JLabel date = new JLabel(" ");
+	private final JLabel recipients = new JLabel(" ");
+	private final JLabel detailsToggle = new JLabel(InboxText.get("reader.details.show"));
+	private final JPanel details = new JPanel(new MigLayout("insets 4 0 0 0, fillx, gap 0 2", "[grow,fill]", "[]"));
+	private final JLabel detailsText = new JLabel(" ");
+	private boolean detailsOpen;
 
 	public MessageHeaderPanel() {
-		super(new MigLayout("insets 0, fillx, gap 0 4", "[grow,fill]", "[]8[]2[]2[]2[]2[]2[]"));
+		super(new MigLayout("insets 0, fillx, gap 0 2", "[grow,fill]", "[]4[]2[]0[]"));
 		setOpaque(false);
+
 		subject.setFont(UiTokens.subjectFont(subject.getFont()));
 		subject.setForeground(UiTokens.TEXT);
 		add(subject, "growx, wrap");
 
-		JPanel identity = new JPanel(new BorderLayout(10, 0));
+		JPanel identity = new JPanel(new BorderLayout(8, 0));
 		identity.setOpaque(false);
+		avatar.setPreferredSize(new java.awt.Dimension(UiTokens.AVATAR_SIZE, UiTokens.AVATAR_SIZE));
 		identity.add(avatar, BorderLayout.WEST);
-		JPanel identityText = new JPanel(new MigLayout("insets 0, fillx, gap 0 2", "[grow,fill]", "[][]"));
-		identityText.setOpaque(false);
-		fromRow = fieldRow(InboxText.get("reader.from"), fromValue, true);
-		dateRow = fieldRow(InboxText.get("reader.date"), dateValue, false);
-		identityText.add(fromRow, "growx, wrap");
-		identityText.add(dateRow, "growx, wrap");
-		identity.add(identityText, BorderLayout.CENTER);
+
+		sender.setForeground(UiTokens.TEXT);
+		sender.setFont(sender.getFont().deriveFont(Font.BOLD, 13f));
+		date.setForeground(UiTokens.TEXT_SECONDARY);
+		date.setFont(UiTokens.secondaryFont(date.getFont()));
+		date.setHorizontalAlignment(SwingConstants.RIGHT);
+
+		JPanel senderRow = new JPanel(new BorderLayout(8, 0));
+		senderRow.setOpaque(false);
+		senderRow.add(sender, BorderLayout.CENTER);
+		senderRow.add(date, BorderLayout.EAST);
+		identity.add(senderRow, BorderLayout.CENTER);
 		add(identity, "growx, wrap");
 
-		toRow = addField(InboxText.get("reader.to"), toValue, true);
-		ccRow = addField(InboxText.get("reader.cc"), ccValue, true);
-		bccRow = addField(InboxText.get("reader.bcc"), bccValue, true);
-		replyRow = addField(InboxText.get("reader.replyTo"), replyValue, false);
+		recipients.setForeground(UiTokens.TEXT_SECONDARY);
+		recipients.setFont(UiTokens.secondaryFont(recipients.getFont()));
+		add(recipients, "growx, wrap");
+
+		detailsToggle.setForeground(UiTokens.ACCENT);
+		detailsToggle.setFont(UiTokens.secondaryFont(detailsToggle.getFont()));
+		detailsToggle.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		detailsToggle.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent event) {
+				toggleDetails();
+			}
+		});
+		add(detailsToggle, "wrap");
+
+		details.setOpaque(false);
+		details.setVisible(false);
+		detailsText.setForeground(UiTokens.TEXT_SECONDARY);
+		detailsText.setFont(UiTokens.secondaryFont(detailsText.getFont()));
+		detailsText.setVerticalAlignment(SwingConstants.TOP);
+		details.add(detailsText, "growx");
+		add(details, "growx, wrap, hidemode 3");
+
 		setBorder(BorderFactory.createCompoundBorder(
 				UiTokens.bottomHairline(),
-				BorderFactory.createEmptyBorder(0, 0, 10, 0)));
+				BorderFactory.createEmptyBorder(0, 0, 6, 0)));
 	}
 
 	public void showMessage(InboxMessage message) {
 		ParsedEmail parsed = message.getParsed();
-		subject.setText("<html><div style='width:100%'>" + escape(subjectOf(parsed)) + "</div></html>");
+		subject.setText(subjectOf(parsed));
 		avatar.setIdentity(parsed.senderLine());
-		fromValue.setText(htmlValue(valueOrUnknown(parsed.senderLine())));
-		toValue.setText(htmlValue(valueOrNone(parsed.recipientLine())));
+		sender.setText(valueOrUnknown(parsed.senderLine()));
+		date.setText(MailDates.format(message.getReceivedDate()));
+
+		String to = valueOrNone(parsed.recipientLine());
 		String cc = ParsedEmail.join(parsed.getCc());
 		String bcc = ParsedEmail.join(parsed.getBcc());
 		String reply = ParsedEmail.join(parsed.getReplyTo());
-		fromRow.setVisible(true);
-		toRow.setVisible(true);
-		dateRow.setVisible(true);
-		ccRow.setVisible(!Texts.isBlank(cc));
-		bccRow.setVisible(!Texts.isBlank(bcc));
-		replyRow.setVisible(!Texts.isBlank(reply));
-		ccValue.setText(htmlValue(cc));
-		bccValue.setText(htmlValue(bcc));
-		replyValue.setText(htmlValue(reply));
-		dateValue.setText(htmlValue(MailDates.format(message.getReceivedDate())));
+
+		StringBuilder summary = new StringBuilder();
+		summary.append(InboxText.get("reader.to")).append(": ").append(shorten(to, 90));
+		if (!Texts.isBlank(cc)) {
+			summary.append("   ").append(InboxText.get("reader.cc")).append(": ").append(shorten(cc, 40));
+		}
+		recipients.setText(summary.toString());
+
+		StringBuilder full = new StringBuilder("<html><body style='width:100%;color:#687386;font-size:11px'>");
+		full.append("<b>").append(InboxText.get("reader.to")).append(":</b> ").append(escape(to)).append("<br>");
+		if (!Texts.isBlank(cc)) {
+			full.append("<b>").append(InboxText.get("reader.cc")).append(":</b> ").append(escape(cc)).append("<br>");
+		}
+		if (!Texts.isBlank(bcc)) {
+			full.append("<b>").append(InboxText.get("reader.bcc")).append(":</b> ").append(escape(bcc)).append("<br>");
+		}
+		if (!Texts.isBlank(reply)) {
+			full.append("<b>").append(InboxText.get("reader.replyTo")).append(":</b> ").append(escape(reply));
+		}
+		full.append("</body></html>");
+		detailsText.setText(full.toString());
+		detailsOpen = false;
+		details.setVisible(false);
+		detailsToggle.setText(InboxText.get("reader.details.show"));
 		revalidate();
 		repaint();
 	}
 
-	private JPanel addField(String labelText, JLabel value, boolean scrollable) {
-		JPanel row = fieldRow(labelText, value, scrollable);
-		add(row, "growx, wrap");
-		return row;
-	}
-
-	private static JPanel fieldRow(String labelText, JLabel value, boolean scrollable) {
-		JPanel row = new JPanel(new MigLayout("insets 0, fillx, gap 0 10", "[56!][grow,fill]", "[]"));
-		row.setOpaque(false);
-		JLabel label = new JLabel(labelText);
-		label.setForeground(UiTokens.TEXT_SECONDARY);
-		label.setFont(label.getFont().deriveFont(Font.BOLD, 12f));
-		label.setVerticalAlignment(SwingConstants.TOP);
-		row.add(label, "top");
-		if (scrollable) {
-			JScrollPane scroll = new JScrollPane(value);
-			scroll.setBorder(null);
-			scroll.setOpaque(false);
-			scroll.getViewport().setOpaque(false);
-			scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-			scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
-			scroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, MAX_ADDRESS_HEIGHT));
-			row.add(scroll, "growx");
-		} else {
-			row.add(value, "growx");
-		}
-		return row;
-	}
-
-	private static JLabel valueLabel() {
-		JLabel label = new JLabel(" ");
-		label.setForeground(UiTokens.TEXT);
-		label.setVerticalAlignment(SwingConstants.TOP);
-		return label;
+	private void toggleDetails() {
+		detailsOpen = !detailsOpen;
+		details.setVisible(detailsOpen);
+		detailsToggle.setText(detailsOpen
+				? InboxText.get("reader.details.hide")
+				: InboxText.get("reader.details.show"));
+		revalidate();
+		repaint();
 	}
 
 	private static String subjectOf(ParsedEmail parsed) {
@@ -149,8 +158,14 @@ public final class MessageHeaderPanel extends JPanel {
 		return value;
 	}
 
-	private static String htmlValue(String value) {
-		return "<html><div style='width:100%'>" + escape(value) + "</div></html>";
+	private static String shorten(String value, int max) {
+		if (value == null) {
+			return "";
+		}
+		if (value.length() <= max) {
+			return value;
+		}
+		return value.substring(0, max - 1) + "\u2026";
 	}
 
 	private static String escape(String value) {

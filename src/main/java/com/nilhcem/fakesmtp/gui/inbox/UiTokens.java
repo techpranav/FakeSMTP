@@ -37,11 +37,11 @@ public final class UiTokens {
 	public static final int SPACE_SM = 8;
 	public static final int SPACE_MD = 12;
 	public static final int SPACE_LG = 16;
-	public static final int HEADER_HEIGHT = 64;
+	public static final int HEADER_HEIGHT = 56;
 	public static final int SIDEBAR_WIDTH = 200;
-	public static final int LIST_WIDTH = 320;
-	public static final int LIST_ROW_HEIGHT = 84;
-	public static final int AVATAR_SIZE = 34;
+	public static final int LIST_WIDTH = 300;
+	public static final int LIST_ROW_HEIGHT = 76;
+	public static final int AVATAR_SIZE = 32;
 	public static final int RADIUS = 8;
 
 	private UiTokens() {
@@ -49,11 +49,11 @@ public final class UiTokens {
 	}
 
 	public static Font brandFont(Font base) {
-		return base.deriveFont(Font.BOLD, 18f);
+		return base.deriveFont(Font.BOLD, 17f);
 	}
 
 	public static Font subjectFont(Font base) {
-		return base.deriveFont(Font.BOLD, 20f);
+		return base.deriveFont(Font.BOLD, 17f);
 	}
 
 	public static Font secondaryFont(Font base) {
@@ -71,6 +71,6 @@ public final class UiTokens {
 	public static Border cardBorder() {
 		return BorderFactory.createCompoundBorder(
 				BorderFactory.createLineBorder(BORDER),
-				BorderFactory.createEmptyBorder(SPACE_SM, SPACE_MD, SPACE_SM, SPACE_MD));
+				BorderFactory.createEmptyBorder(6, 10, 6, 10));
 	}
 }

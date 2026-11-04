@@ -45,7 +45,7 @@ public final class InboxHeader extends JPanel {
 	private Runnable testEmailAction;
 
 	public InboxHeader(LegacyControls controls) {
-		super(new MigLayout("insets 10 16 10 16", "[]16[grow][]", "[]"));
+		super(new MigLayout("insets 8 14 8 14", "[]14[grow][]", "[]"));
 		this.controls = controls;
 		setOpaque(true);
 		setBackground(UiTokens.SURFACE);

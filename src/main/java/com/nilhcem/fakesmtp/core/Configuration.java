@@ -23,6 +23,7 @@ public enum Configuration {
 	private static final String USER_CONFIG_FILE = ".mailbox.properties";
 	/** Legacy FakeSMTP settings file — still loaded for backward compatibility. */
 	private static final String LEGACY_USER_CONFIG_FILE = ".fakeSMTP.properties";
+	private final Properties defaults = new Properties();
 	private final Properties config = new Properties();
 
 	/**
@@ -31,11 +32,11 @@ public enum Configuration {
 	Configuration() {
 		InputStream in = getClass().getResourceAsStream(CONFIG_FILE);
 		try {
-			// Load defaults settings
-			config.load(in);
+			defaults.load(in);
 			in.close();
-			// and override them from user settings
+			config.putAll(defaults);
 			loadFromUserProfile();
+			restoreBranding();
 		} catch (IOException e) {
 			LoggerFactory.getLogger(Configuration.class).error("", e);
 		}
@@ -71,9 +72,18 @@ public enum Configuration {
 	 * @throws IOException
 	 */
 	public void saveToFile(File file) throws IOException {
+		Properties user = new Properties();
+		// Local array: enum INSTANCE initializes before other static fields.
+		String[] userKeys = { "smtp.default.port", "emails.default.dir", "application.tray.use" };
+		for (String key : userKeys) {
+			String value = config.getProperty(key);
+			if (value != null) {
+				user.setProperty(key, value);
+			}
+		}
 		FileOutputStream fos = new FileOutputStream(file);
 		try {
-			config.store(fos, "MailBox user settings");
+			user.store(fos, "MailBox user settings");
 		} finally {
 			IOUtils.closeQuietly(fos);
 		}
@@ -104,6 +114,7 @@ public enum Configuration {
 			} finally {
 				IOUtils.closeQuietly(fis);
 			}
+			restoreBranding();
 		}
 		return INSTANCE;
 	}
@@ -113,6 +124,7 @@ public enum Configuration {
 	 * <p>
 	 * Loads the legacy {@code .fakeSMTP.properties} first (if present), then
 	 * {@code .mailbox.properties} so newer MailBox settings override without losing old installs.
+	 * Branding keys are always restored from the packaged defaults afterward.
 	 * </p>
 	 *
 	 * @return INSTANCE.
@@ -121,6 +133,26 @@ public enum Configuration {
 	public Configuration loadFromUserProfile() throws IOException {
 		String home = System.getProperty("user.home");
 		loadFromFile(new File(home, LEGACY_USER_CONFIG_FILE));
-		return loadFromFile(new File(home, USER_CONFIG_FILE));
+		loadFromFile(new File(home, USER_CONFIG_FILE));
+		restoreBranding();
+		return INSTANCE;
+	}
+
+	private void restoreBranding() {
+		// Local array: enum INSTANCE initializes before other static fields.
+		String[] brandingKeys = {
+			"application.name",
+			"application.title",
+			"application.tagline",
+			"application.description",
+			"application.product.code",
+			"application.icon.path"
+		};
+		for (String key : brandingKeys) {
+			String value = defaults.getProperty(key);
+			if (value != null) {
+				config.setProperty(key, value);
+			}
+		}
 	}
 }

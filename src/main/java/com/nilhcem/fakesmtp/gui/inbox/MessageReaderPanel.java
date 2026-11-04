@@ -79,12 +79,12 @@ public final class MessageReaderPanel extends JPanel {
 		attachmentBox.setLayout(new BoxLayout(attachmentBox, BoxLayout.Y_AXIS));
 		attachmentBox.setOpaque(false);
 		attachmentScroll = new JScrollPane(attachmentBox);
-		attachmentScroll.setBorder(BorderFactory.createEmptyBorder(8, 0, 0, 0));
+		attachmentScroll.setBorder(BorderFactory.createEmptyBorder(4, 0, 0, 0));
 		attachmentScroll.setOpaque(false);
 		attachmentScroll.getViewport().setOpaque(false);
 		attachmentScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 		attachmentScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
-		attachmentScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 160));
+		attachmentScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
 		htmlView.setLoadImages(() -> {
 			if (current != null) {
 				actions.loadExternalImages(current);
@@ -185,7 +185,7 @@ public final class MessageReaderPanel extends JPanel {
 
 		JPanel headingPad = new JPanel(new BorderLayout());
 		headingPad.setOpaque(false);
-		headingPad.setBorder(BorderFactory.createEmptyBorder(12, 16, 8, 16));
+		headingPad.setBorder(BorderFactory.createEmptyBorder(8, 14, 4, 14));
 		headingPad.add(heading, BorderLayout.CENTER);
 
 		JPanel top = new JPanel(new BorderLayout());
@@ -283,6 +283,7 @@ public final class MessageReaderPanel extends JPanel {
 		attachmentBox.removeAll();
 		if (!parsed.hasAttachments()) {
 			attachmentScroll.setVisible(false);
+			attachmentScroll.setPreferredSize(new Dimension(10, 0));
 			attachmentBox.revalidate();
 			return;
 		}
@@ -291,7 +292,7 @@ public final class MessageReaderPanel extends JPanel {
 		titleRow.setOpaque(false);
 		titleRow.setAlignmentX(LEFT_ALIGNMENT);
 		JLabel title = new JLabel(InboxText.get("attach.title"));
-		title.setFont(title.getFont().deriveFont(Font.BOLD));
+		title.setFont(title.getFont().deriveFont(Font.BOLD, 12f));
 		title.setForeground(UiTokens.TEXT);
 		JButton saveAll = new JButton(InboxText.get("attach.saveAll"));
 		saveAll.putClientProperty("JButton.buttonType", "toolBarButton");
@@ -299,8 +300,8 @@ public final class MessageReaderPanel extends JPanel {
 		titleRow.add(title, BorderLayout.WEST);
 		titleRow.add(saveAll, BorderLayout.EAST);
 		attachmentBox.add(titleRow);
-		attachmentBox.add(Box.createVerticalStrut(6));
-		JPanel cards = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
+		attachmentBox.add(Box.createVerticalStrut(4));
+		JPanel cards = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
 		cards.setOpaque(false);
 		cards.setAlignmentX(LEFT_ALIGNMENT);
 		for (MailAttachment attachment : parsed.getAttachments()) {
@@ -308,34 +309,36 @@ public final class MessageReaderPanel extends JPanel {
 		}
 		attachmentBox.add(cards);
 		attachmentBox.revalidate();
+		int height = Math.min(110, Math.max(56, attachmentBox.getPreferredSize().height + 8));
+		attachmentScroll.setPreferredSize(new Dimension(10, height));
 	}
 
 	private JPanel attachmentCard(MailAttachment attachment) {
-		JPanel card = new JPanel(new BorderLayout(8, 4));
+		JPanel card = new JPanel(new BorderLayout(6, 2));
 		card.setOpaque(true);
 		card.setBackground(UiTokens.APP_BG);
 		card.setBorder(UiTokens.cardBorder());
-		card.setPreferredSize(new Dimension(220, 72));
+		card.setPreferredSize(new Dimension(210, 58));
 		String type = extensionLabel(attachment.getFileName());
 		JLabel icon = new JLabel(type);
 		icon.setOpaque(true);
 		icon.setBackground(UiTokens.AVATAR_BG);
 		icon.setForeground(UiTokens.AVATAR_FG);
-		icon.setFont(icon.getFont().deriveFont(Font.BOLD, 11f));
-		icon.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+		icon.setFont(icon.getFont().deriveFont(Font.BOLD, 10f));
+		icon.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
 		icon.setHorizontalAlignment(JLabel.CENTER);
 		card.add(icon, BorderLayout.WEST);
-		JPanel meta = new JPanel(new BorderLayout());
+		JPanel meta = new JPanel(new BorderLayout(0, 0));
 		meta.setOpaque(false);
-		JLabel name = new JLabel(attachment.getFileName());
+		String fileName = attachment.getFileName();
+		if (fileName != null && fileName.length() > 24) {
+			fileName = fileName.substring(0, 23) + "\u2026";
+		}
+		JLabel name = new JLabel(fileName + "  ·  " + attachment.getSize() + " B");
 		name.setForeground(UiTokens.TEXT);
-		JLabel size = new JLabel(attachment.getSize() + " B");
-		size.setForeground(UiTokens.TEXT_SECONDARY);
-		size.setFont(UiTokens.secondaryFont(size.getFont()));
+		name.setFont(name.getFont().deriveFont(12f));
 		meta.add(name, BorderLayout.NORTH);
-		meta.add(size, BorderLayout.SOUTH);
-		card.add(meta, BorderLayout.CENTER);
-		JPanel actionsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
+		JPanel actionsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
 		actionsRow.setOpaque(false);
 		JButton preview = tiny(InboxText.get("attach.preview"));
 		preview.addActionListener(event -> previewAttachment(attachment));
@@ -346,7 +349,8 @@ public final class MessageReaderPanel extends JPanel {
 		actionsRow.add(preview);
 		actionsRow.add(save);
 		actionsRow.add(open);
-		card.add(actionsRow, BorderLayout.SOUTH);
+		meta.add(actionsRow, BorderLayout.SOUTH);
+		card.add(meta, BorderLayout.CENTER);
 		return card;
 	}
 

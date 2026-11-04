@@ -24,11 +24,15 @@ On Unix-like systems you may need root (or another port ≥ 1024) to bind port 2
 Screenshots
 -----------
 
-Empty inbox after starting the server on port 25:
+Polished three-pane inbox (sidebar, list with avatars, compact reading pane):
 
-![MailBox empty inbox](docs/images/screenshot-inbox-empty.png)
+![MailBox polished UI](docs/images/screenshot-ui-polish.png)
 
-HTML email rendered in the reading pane (tables, links, and charts):
+Reading pane detail (compact header, attachment cards, HTML body):
+
+![MailBox reading pane](docs/images/screenshot-reader-polish.png)
+
+HTML email rendering (tables, links, and charts):
 
 ![Rendered overdue-approval email](docs/images/overdue-approval.png)
 

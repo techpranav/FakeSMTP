@@ -64,6 +64,7 @@ public final class MainFrame {
 		MainWindowListener windowListener = new MainWindowListener(this);
 
 		mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		mainFrame.setTitle(Configuration.INSTANCE.get("application.title"));
 		mainFrame.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent e) {

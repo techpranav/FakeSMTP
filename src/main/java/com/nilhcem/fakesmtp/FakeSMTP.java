@@ -87,6 +87,7 @@ public final class FakeSMTP {
 					}
 
 					System.setProperty("apple.laf.useScreenMenuBar", "true");
+					System.setProperty("apple.awt.application.name", Configuration.INSTANCE.get("application.name"));
 					System.setProperty("com.apple.mrj.application.apple.menu.about.name", Configuration.INSTANCE.get("application.name"));
 					UIManager.put("swing.boldMetal", Boolean.FALSE);
 					Themes.installSaved();

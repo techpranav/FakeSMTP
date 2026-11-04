@@ -248,7 +248,7 @@ public final class MessageListPanel extends JPanel {
 			JPanel row = new JPanel(new BorderLayout(10, 0));
 			row.setBorder(BorderFactory.createCompoundBorder(
 					BorderFactory.createMatteBorder(0, 0, 1, 0, UiTokens.BORDER),
-					BorderFactory.createEmptyBorder(10, 8, 10, 8)));
+					BorderFactory.createEmptyBorder(8, 6, 8, 6)));
 			row.setBackground(selected ? UiTokens.SELECTED_BG : UiTokens.SURFACE);
 			row.setOpaque(true);
 
