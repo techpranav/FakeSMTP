@@ -136,9 +136,11 @@ Point your application SMTP host to `localhost` and the same port shown in the h
 Inbox features
 --------------
 
-- Mail-client layout: Inbox, Unread, All Emails, Attachments, SMTP log
-- Search, newest/oldest sort, refresh (`F5`)
-- HTML / plain text / headers / raw MIME views
+- Mail-client layout: Inbox, Unread, Flagged, All Emails, Attachments, SMTP log
+- Search, sort (newest / oldest / subject / sender / flagged), refresh (`F5`)
+- **Send test email** (HTML, links, table, chart, attachments) without an SMTP client
+- HTML / plain text / headers / raw MIME views; flag messages from the reading pane
+- Export: Outlook `.msg`, `.eml`, and full-height HTML PNG screenshot
 - Safe HTML: no JavaScript, remote images blocked until you allow them
 - Tables, links, CID images, SVG charts (rasterized)
 - Desktop notifications (tray + in-window toast) with optional sound

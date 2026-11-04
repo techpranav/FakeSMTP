@@ -68,6 +68,7 @@ public final class MessageReaderPanel extends JPanel {
 	private final JToggleButton headerButton = new JToggleButton(InboxText.get("reader.headers"));
 	private final JToggleButton rawButton = new JToggleButton(InboxText.get("reader.raw"));
 	private final JButton readButton = new JButton(InboxText.get("reader.markUnread"));
+	private final JButton flagButton = new JButton(InboxText.get("reader.flag"));
 	private InboxMessage current;
 
 	public MessageReaderPanel(MessageActions actions) {
@@ -102,6 +103,11 @@ public final class MessageReaderPanel extends JPanel {
 		rawButton.addActionListener(event -> bodyCards.show(body, "raw"));
 		htmlButton.setSelected(true);
 		readButton.addActionListener(event -> toggleRead());
+		flagButton.addActionListener(event -> {
+			if (current != null) {
+				actions.toggleFlag(current);
+			}
+		});
 		JButton delete = new JButton(InboxText.get("reader.delete"));
 		delete.addActionListener(event -> {
 			if (current != null) {
@@ -121,6 +127,27 @@ public final class MessageReaderPanel extends JPanel {
 		folder.addActionListener(event -> actions.openEmailsFolder());
 		JButton markAll = new JButton(InboxText.get("reader.markAllRead"));
 		markAll.addActionListener(event -> actions.markAllRead());
+		JButton saveMsg = new JButton(InboxText.get("reader.saveMsg"));
+		saveMsg.setToolTipText(InboxText.get("reader.saveMsg.tip"));
+		saveMsg.addActionListener(event -> {
+			if (current != null) {
+				actions.saveAsMsg(current);
+			}
+		});
+		JButton saveEml = new JButton(InboxText.get("reader.saveEml"));
+		saveEml.setToolTipText(InboxText.get("reader.saveEml.tip"));
+		saveEml.addActionListener(event -> {
+			if (current != null) {
+				actions.saveAsEml(current);
+			}
+		});
+		JButton screenshot = new JButton(InboxText.get("reader.screenshot"));
+		screenshot.setToolTipText(InboxText.get("reader.screenshot.tip"));
+		screenshot.addActionListener(event -> {
+			if (current != null) {
+				actions.saveScreenshot(current);
+			}
+		});
 
 		JPanel viewGroup = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
 		viewGroup.setOpaque(false);
@@ -131,8 +158,12 @@ public final class MessageReaderPanel extends JPanel {
 		JPanel actionGroup = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
 		actionGroup.setOpaque(false);
 		actionGroup.add(readButton);
+		actionGroup.add(flagButton);
 		actionGroup.add(markAll);
 		actionGroup.add(copy);
+		actionGroup.add(saveMsg);
+		actionGroup.add(saveEml);
+		actionGroup.add(screenshot);
 		actionGroup.add(folder);
 		actionGroup.add(open);
 		actionGroup.add(delete);
@@ -211,6 +242,11 @@ public final class MessageReaderPanel extends JPanel {
 			readButton.setText(InboxText.get("reader.markUnread"));
 		} else {
 			readButton.setText(InboxText.get("reader.markRead"));
+		}
+		if (message.isFlagged()) {
+			flagButton.setText(InboxText.get("reader.unflag"));
+		} else {
+			flagButton.setText(InboxText.get("reader.flag"));
 		}
 		if (switched) {
 			if (UISettings.VIEW_TEXT.equals(UISettings.INSTANCE.get(UISettings.DEFAULT_VIEW))) {

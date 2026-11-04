@@ -23,7 +23,7 @@ public final class InboxModel {
 	private final List<InboxListener> listeners = new ArrayList<InboxListener>();
 	private InboxFolder folder = InboxFolder.INBOX;
 	private String query = "";
-	private boolean newestFirst = true;
+	private SortMode sortMode = SortMode.NEWEST_FIRST;
 	private String selectedId;
 
 	public void addListener(InboxListener listener) {
@@ -55,11 +55,27 @@ public final class InboxModel {
 	}
 
 	public synchronized boolean isNewestFirst() {
-		return newestFirst;
+		return sortMode == SortMode.NEWEST_FIRST;
 	}
 
 	public synchronized void setNewestFirst(boolean newestFirst) {
-		this.newestFirst = newestFirst;
+		if (newestFirst) {
+			setSortMode(SortMode.NEWEST_FIRST);
+		} else {
+			setSortMode(SortMode.OLDEST_FIRST);
+		}
+	}
+
+	public synchronized SortMode getSortMode() {
+		return sortMode;
+	}
+
+	public synchronized void setSortMode(SortMode sortMode) {
+		if (sortMode == null) {
+			this.sortMode = SortMode.NEWEST_FIRST;
+		} else {
+			this.sortMode = sortMode;
+		}
 		fire();
 	}
 
@@ -117,6 +133,15 @@ public final class InboxModel {
 		fire();
 	}
 
+	public synchronized void setFlagged(String id, boolean flagged) {
+		InboxMessage message = find(id);
+		if (message == null || message.isFlagged() == flagged) {
+			return;
+		}
+		message.setFlagged(flagged);
+		fire();
+	}
+
 	public synchronized InboxMessage remove(String id) {
 		InboxMessage message = find(id);
 		if (message == null) {
@@ -144,6 +169,16 @@ public final class InboxModel {
 		int count = 0;
 		for (InboxMessage message : messages) {
 			if (!message.isRead()) {
+				count++;
+			}
+		}
+		return count;
+	}
+
+	public synchronized int getFlaggedCount() {
+		int count = 0;
+		for (InboxMessage message : messages) {
+			if (message.isFlagged()) {
 				count++;
 			}
 		}
@@ -196,6 +231,9 @@ public final class InboxModel {
 		if (folder == InboxFolder.UNREAD) {
 			return !message.isRead();
 		}
+		if (folder == InboxFolder.FLAGGED) {
+			return message.isFlagged();
+		}
 		if (folder == InboxFolder.ATTACHMENTS) {
 			return message.getParsed() != null && message.getParsed().hasAttachments();
 		}
@@ -217,24 +255,59 @@ public final class InboxModel {
 		return new Comparator<InboxMessage>() {
 			@Override
 			public int compare(InboxMessage left, InboxMessage right) {
-				Date first = left.getReceivedDate();
-				Date second = right.getReceivedDate();
-				if (first == null && second == null) {
-					return 0;
+				if (sortMode == SortMode.SUBJECT) {
+					return compareText(subjectOf(left), subjectOf(right));
 				}
-				if (first == null) {
-					return 1;
+				if (sortMode == SortMode.SENDER) {
+					return compareText(senderOf(left), senderOf(right));
 				}
-				if (second == null) {
-					return -1;
+				if (sortMode == SortMode.FLAGGED_FIRST) {
+					int flags = Boolean.compare(right.isFlagged(), left.isFlagged());
+					if (flags != 0) {
+						return flags;
+					}
+					return compareDate(left, right, true);
 				}
-				int order = first.compareTo(second);
-				if (!newestFirst) {
-					return order;
-				}
-				return -order;
+				return compareDate(left, right, sortMode == SortMode.NEWEST_FIRST);
 			}
 		};
+	}
+
+	private static int compareDate(InboxMessage left, InboxMessage right, boolean newestFirst) {
+		Date first = left.getReceivedDate();
+		Date second = right.getReceivedDate();
+		if (first == null && second == null) {
+			return 0;
+		}
+		if (first == null) {
+			return 1;
+		}
+		if (second == null) {
+			return -1;
+		}
+		int order = first.compareTo(second);
+		if (!newestFirst) {
+			return order;
+		}
+		return -order;
+	}
+
+	private static int compareText(String left, String right) {
+		return left.compareToIgnoreCase(right);
+	}
+
+	private static String subjectOf(InboxMessage message) {
+		if (message.getParsed() == null || Texts.isBlank(message.getParsed().getSubject())) {
+			return "";
+		}
+		return message.getParsed().getSubject();
+	}
+
+	private static String senderOf(InboxMessage message) {
+		if (message.getParsed() == null) {
+			return "";
+		}
+		return message.getParsed().senderLine();
 	}
 
 	private void fire() {

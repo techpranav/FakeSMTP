@@ -37,7 +37,10 @@ public final class HtmlRenderer {
 		}
 		agent.setInlineImages(email.getInlineImages());
 		agent.clearImageCache();
-		panel.setDocumentFromString(email.getPreparedHtml(), null, new XhtmlNamespaceHandler());
+		// Flying Saucer's ImageResourceLoader opens img src as URLs and ignores the user agent
+		// for non-data URIs, so cid: references must be rewritten to data URLs before paint.
+		String html = CidEmbedder.embed(email.getPreparedHtml(), email.getInlineImages());
+		panel.setDocumentFromString(html, null, new XhtmlNamespaceHandler());
 	}
 
 	/**
@@ -52,6 +55,41 @@ public final class HtmlRenderer {
 		MailUserAgent agent = new MailUserAgent();
 		ScrollableHtmlPanel panel = createPanel(agent);
 		show(panel, agent, email);
+		panel.setSize(new Dimension(width, height));
+		panel.doLayout();
+		BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+		Graphics2D graphics = image.createGraphics();
+		try {
+			graphics.setColor(Color.WHITE);
+			graphics.fillRect(0, 0, width, height);
+			panel.paint(graphics);
+		} finally {
+			graphics.dispose();
+		}
+		return image;
+	}
+
+	/**
+	 * Renders the full HTML body at the given width, growing the image height to fit long messages.
+	 *
+	 * @param email prepared message.
+	 * @param width image width in pixels.
+	 * @param maxHeight maximum image height (taller content is clipped at this limit).
+	 * @return the rendered image.
+	 */
+	public static BufferedImage renderFull(ParsedEmail email, int width, int maxHeight) {
+		MailUserAgent agent = new MailUserAgent();
+		ScrollableHtmlPanel panel = createPanel(agent);
+		show(panel, agent, email);
+		panel.setSize(new Dimension(width, 200));
+		panel.doLayout();
+		int height = panel.getPreferredSize().height;
+		if (height < 200) {
+			height = 200;
+		}
+		if (height > maxHeight) {
+			height = maxHeight;
+		}
 		panel.setSize(new Dimension(width, height));
 		panel.doLayout();
 		BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);

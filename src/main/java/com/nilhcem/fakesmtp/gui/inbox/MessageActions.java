@@ -20,4 +20,14 @@ public interface MessageActions {
 	void openEmailsFolder();
 
 	void markAllRead();
+
+	void toggleFlag(InboxMessage message);
+
+	void saveAsMsg(InboxMessage message);
+
+	void saveAsEml(InboxMessage message);
+
+	void saveScreenshot(InboxMessage message);
+
+	void sendTestEmail();
 }

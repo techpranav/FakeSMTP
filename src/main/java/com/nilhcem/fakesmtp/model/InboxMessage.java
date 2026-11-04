@@ -16,12 +16,14 @@ public final class InboxMessage {
 	private final EmailModel email;
 	private final ParsedEmail parsed;
 	private boolean read;
+	private boolean flagged;
 
 	public InboxMessage(EmailModel email, ParsedEmail parsed, boolean read) {
 		this.id = UUID.randomUUID().toString();
 		this.email = email;
 		this.parsed = parsed;
 		this.read = read;
+		this.flagged = false;
 	}
 
 	public String getId() {
@@ -42,6 +44,14 @@ public final class InboxMessage {
 
 	public void setRead(boolean read) {
 		this.read = read;
+	}
+
+	public boolean isFlagged() {
+		return flagged;
+	}
+
+	public void setFlagged(boolean flagged) {
+		this.flagged = flagged;
 	}
 
 	public Date getReceivedDate() {

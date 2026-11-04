@@ -82,6 +82,9 @@ public class EmailRenderTest {
 		assertNotNull(agent.resolveAndOpenStream("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"));
 		org.junit.Assert.assertNull(agent.resolveAndOpenStream("file:///c:/windows/win.ini"));
 		org.junit.Assert.assertNull(agent.resolveAndOpenStream("https://example.invalid/a.png"));
+		String embedded = CidEmbedder.embed(email.getPreparedHtml(), email.getInlineImages());
+		assertTrue(embedded.contains("data:image/gif;base64,"));
+		assertFalse(embedded.toLowerCase().contains("cid:logo@example"));
 	}
 
 	private static byte[] resource(String name) throws Exception {

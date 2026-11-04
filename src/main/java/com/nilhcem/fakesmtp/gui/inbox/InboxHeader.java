@@ -41,9 +41,10 @@ public final class InboxHeader extends JPanel {
 	private Runnable settingsAction;
 	private Runnable themeChanged;
 	private Runnable copyConnectionAction;
+	private Runnable testEmailAction;
 
 	public InboxHeader(LegacyControls controls) {
-		super(new MigLayout("insets 10 14 10 14", "[]12[]12[]8[]8[]8[]push[]8[]8[]8[]", "[]"));
+		super(new MigLayout("insets 10 14 10 14", "[]12[]12[]8[]8[]8[]8[]push[]8[]8[]8[]", "[]"));
 		this.controls = controls;
 		setOpaque(true);
 		setBackground(new Color(0xFFFFFF));
@@ -67,6 +68,13 @@ public final class InboxHeader extends JPanel {
 				copyConnectionAction.run();
 			}
 		});
+		JButton testEmail = new JButton(InboxText.get("header.testEmail"));
+		testEmail.setToolTipText(InboxText.get("header.testEmail.tip"));
+		testEmail.addActionListener(event -> {
+			if (testEmailAction != null) {
+				testEmailAction.run();
+			}
+		});
 		notifications.setSelected(UISettings.INSTANCE.getBoolean(UISettings.NOTIFICATIONS_ENABLED));
 		notifications.addActionListener(event -> saveNotifications());
 		if (UISettings.INSTANCE.isDarkTheme()) {
@@ -83,6 +91,7 @@ public final class InboxHeader extends JPanel {
 		add(controls.getPort().get(), "w 72!");
 		add(controls.getServer().get(), "sg server");
 		add(controls.getServer().getStopButton(), "sg server");
+		add(testEmail);
 		add(copyConnection);
 		add(notifications);
 		add(theme);
@@ -100,6 +109,10 @@ public final class InboxHeader extends JPanel {
 
 	public void setCopyConnectionAction(Runnable copyConnectionAction) {
 		this.copyConnectionAction = copyConnectionAction;
+	}
+
+	public void setTestEmailAction(Runnable testEmailAction) {
+		this.testEmailAction = testEmailAction;
 	}
 
 	public boolean isDarkSelected() {

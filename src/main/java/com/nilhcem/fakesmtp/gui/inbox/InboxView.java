@@ -1,7 +1,5 @@
 package com.nilhcem.fakesmtp.gui.inbox;
 
-import com.nilhcem.fakesmtp.core.Texts;
-
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Dimension;
@@ -13,11 +11,13 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.SwingUtilities;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +26,7 @@ import com.nilhcem.fakesmtp.core.ArgsHandler;
 import com.nilhcem.fakesmtp.core.Texts;
 import com.nilhcem.fakesmtp.core.UISettings;
 import com.nilhcem.fakesmtp.mail.AttachmentFiles;
+import com.nilhcem.fakesmtp.mail.EmailExport;
 import com.nilhcem.fakesmtp.mail.HtmlPreprocessor;
 import com.nilhcem.fakesmtp.model.InboxFolder;
 import com.nilhcem.fakesmtp.model.InboxListener;
@@ -35,6 +36,7 @@ import com.nilhcem.fakesmtp.model.UIModel;
 import com.nilhcem.fakesmtp.notification.InAppToast;
 import com.nilhcem.fakesmtp.server.InboxBridge;
 import com.nilhcem.fakesmtp.server.SMTPServerHandler;
+import com.nilhcem.fakesmtp.server.TestEmailSender;
 
 import net.miginfocom.swing.MigLayout;
 
@@ -78,6 +80,7 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 		header.setSettingsAction(this::openSettings);
 		header.setThemeChanged(this::changeTheme);
 		header.setCopyConnectionAction(this::copyConnection);
+		header.setTestEmailAction(this::sendTestEmail);
 		installShortcuts();
 		sidebar.setLogSelected(this::showLog);
 		sidebar.setFolderSelected(this::showMail);
@@ -236,6 +239,110 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 	@Override
 	public void markAllRead() {
 		model.markAllRead();
+	}
+
+	@Override
+	public void toggleFlag(InboxMessage message) {
+		if (message == null) {
+			return;
+		}
+		model.setFlagged(message.getId(), !message.isFlagged());
+		InboxMessage selected = model.getSelected();
+		if (selected != null && selected.getId().equals(message.getId())) {
+			reader.showMessage(selected);
+		}
+	}
+
+	@Override
+	public void saveAsMsg(InboxMessage message) {
+		exportFile(message, "msg", "Outlook message (*.msg)", new Exporter() {
+			@Override
+			public void export(InboxMessage source, File file) throws IOException {
+				EmailExport.saveAsMsg(source, file);
+			}
+		});
+	}
+
+	@Override
+	public void saveAsEml(InboxMessage message) {
+		exportFile(message, "eml", "Email message (*.eml)", new Exporter() {
+			@Override
+			public void export(InboxMessage source, File file) throws IOException {
+				EmailExport.saveAsEml(source, file);
+			}
+		});
+	}
+
+	@Override
+	public void saveScreenshot(InboxMessage message) {
+		exportFile(message, "png", "PNG image (*.png)", new Exporter() {
+			@Override
+			public void export(InboxMessage source, File file) throws IOException {
+				EmailExport.saveScreenshot(source, file);
+			}
+		});
+	}
+
+	@Override
+	public void sendTestEmail() {
+		try {
+			TestEmailSender.sendSample();
+			toast.showToast(InboxText.get("header.testEmail"), InboxText.get("reader.test.sent"), "info");
+			((CardLayout) centerCards.getLayout()).show(centerCards, "mail");
+			sidebar.showInbox();
+			model.setFolder(InboxFolder.INBOX);
+		} catch (IOException e) {
+			LOGGER.warn("Could not inject the sample email", e);
+			JOptionPane.showMessageDialog(this, InboxText.get("reader.test.failed"));
+		}
+	}
+
+	private void exportFile(InboxMessage message, String extension, String filterLabel, Exporter exporter) {
+		if (message == null || message.getParsed() == null) {
+			return;
+		}
+		String base = safeFileBase(message);
+		JFileChooser chooser = new JFileChooser();
+		chooser.setSelectedFile(new File(base + "." + extension));
+		chooser.setFileFilter(new FileNameExtensionFilter(filterLabel, extension));
+		if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
+			return;
+		}
+		File file = chooser.getSelectedFile();
+		if (file == null) {
+			return;
+		}
+		String name = file.getName();
+		if (!name.toLowerCase(java.util.Locale.ROOT).endsWith("." + extension)) {
+			file = new File(file.getParentFile(), name + "." + extension);
+		}
+		try {
+			exporter.export(message, file);
+			toast.showToast(InboxText.get("reader.export.saved").replace("{0}", file.getName()),
+					file.getAbsolutePath(), "info");
+		} catch (IOException e) {
+			LOGGER.warn("Could not export the message", e);
+			JOptionPane.showMessageDialog(this, InboxText.get("reader.export.failed") + "\n" + e.getMessage());
+		}
+	}
+
+	private static String safeFileBase(InboxMessage message) {
+		String subject = message.getParsed() == null ? null : message.getParsed().getSubject();
+		if (Texts.isBlank(subject)) {
+			subject = "email";
+		}
+		String cleaned = subject.replaceAll("[\\\\/:*?\"<>|]+", "_").trim();
+		if (cleaned.length() > 60) {
+			cleaned = cleaned.substring(0, 60).trim();
+		}
+		if (Texts.isBlank(cleaned)) {
+			cleaned = "email";
+		}
+		return cleaned;
+	}
+
+	private interface Exporter {
+		void export(InboxMessage source, File file) throws IOException;
 	}
 
 	private JPanel statusBar() {

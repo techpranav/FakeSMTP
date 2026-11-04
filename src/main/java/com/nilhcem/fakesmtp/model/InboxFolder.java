@@ -8,6 +8,7 @@ package com.nilhcem.fakesmtp.model;
 public enum InboxFolder {
 	INBOX,
 	UNREAD,
+	FLAGGED,
 	ALL,
 	ATTACHMENTS
 }

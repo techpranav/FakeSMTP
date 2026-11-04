@@ -93,6 +93,13 @@
 			<version>1.7.2</version>
 		</dependency>
 
+		<!-- jotlmsg: write Outlook .msg files (Java 8-compatible 1.x line) -->
+		<dependency>
+			<groupId>ch.astorm</groupId>
+			<artifactId>jotlmsg</artifactId>
+			<version>1.8</version>
+		</dependency>
+
 		<!-- Integration test -->
 		<dependency>
 			<groupId>junit</groupId>

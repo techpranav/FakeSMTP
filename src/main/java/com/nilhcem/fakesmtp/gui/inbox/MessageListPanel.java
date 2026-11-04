@@ -27,6 +27,7 @@ import com.nilhcem.fakesmtp.mail.ParsedEmail;
 import com.nilhcem.fakesmtp.model.InboxFolder;
 import com.nilhcem.fakesmtp.model.InboxMessage;
 import com.nilhcem.fakesmtp.model.InboxModel;
+import com.nilhcem.fakesmtp.model.SortMode;
 
 /**
  * Searchable list of received messages.
@@ -77,12 +78,14 @@ public final class MessageListPanel extends JPanel {
 			}
 		});
 		JComboBox<String> sort = new JComboBox<String>(new String[] {
-			InboxText.get("list.newest"), InboxText.get("list.oldest")
+			InboxText.get("list.newest"),
+			InboxText.get("list.oldest"),
+			InboxText.get("list.subject"),
+			InboxText.get("list.sender"),
+			InboxText.get("list.flagged")
 		});
-		if (!model.isNewestFirst()) {
-			sort.setSelectedIndex(1);
-		}
-		sort.addActionListener(event -> model.setNewestFirst(sort.getSelectedIndex() == 0));
+		sort.setSelectedIndex(indexOf(model.getSortMode()));
+		sort.addActionListener(event -> model.setSortMode(modeAt(sort.getSelectedIndex())));
 		JButton refresh = new JButton(InboxText.get("list.refresh"));
 		refresh.addActionListener(event -> {
 			if (refreshAction != null) {
@@ -181,6 +184,9 @@ public final class MessageListPanel extends JPanel {
 		if (model.getFolder() == InboxFolder.UNREAD) {
 			return InboxText.get("list.empty.unread.title");
 		}
+		if (model.getFolder() == InboxFolder.FLAGGED) {
+			return InboxText.get("list.empty.flagged.title");
+		}
 		if (model.getFolder() == InboxFolder.ATTACHMENTS) {
 			return InboxText.get("list.empty.attachments.title");
 		}
@@ -194,10 +200,45 @@ public final class MessageListPanel extends JPanel {
 		if (model.getFolder() == InboxFolder.UNREAD) {
 			return InboxText.get("list.empty.unread.text");
 		}
+		if (model.getFolder() == InboxFolder.FLAGGED) {
+			return InboxText.get("list.empty.flagged.text");
+		}
 		if (model.getFolder() == InboxFolder.ATTACHMENTS) {
 			return InboxText.get("list.empty.attachments.text");
 		}
 		return InboxText.get("list.empty.inbox.text");
+	}
+
+	private static int indexOf(SortMode mode) {
+		if (mode == SortMode.OLDEST_FIRST) {
+			return 1;
+		}
+		if (mode == SortMode.SUBJECT) {
+			return 2;
+		}
+		if (mode == SortMode.SENDER) {
+			return 3;
+		}
+		if (mode == SortMode.FLAGGED_FIRST) {
+			return 4;
+		}
+		return 0;
+	}
+
+	private static SortMode modeAt(int index) {
+		if (index == 1) {
+			return SortMode.OLDEST_FIRST;
+		}
+		if (index == 2) {
+			return SortMode.SUBJECT;
+		}
+		if (index == 3) {
+			return SortMode.SENDER;
+		}
+		if (index == 4) {
+			return SortMode.FLAGGED_FIRST;
+		}
+		return SortMode.NEWEST_FIRST;
 	}
 
 	/**
@@ -239,6 +280,10 @@ public final class MessageListPanel extends JPanel {
 			String subject = InboxText.get("reader.nosubject");
 			String preview = "";
 			String clip = "";
+			String flag = "";
+			if (message.isFlagged()) {
+				flag = "\u2605 ";
+			}
 			if (parsed != null) {
 				if (!Texts.isBlank(parsed.senderLine())) {
 					sender = shorten(parsed.senderLine(), 42);
@@ -256,7 +301,10 @@ public final class MessageListPanel extends JPanel {
 			text.setOpaque(false);
 			JPanel top = new JPanel(new BorderLayout());
 			top.setOpaque(false);
-			JLabel senderLabel = new JLabel(sender + clip);
+			JLabel senderLabel = new JLabel(flag + sender + clip);
+			if (message.isFlagged()) {
+				senderLabel.setForeground(new Color(0xF9AB00));
+			}
 			JLabel dateLabel = new JLabel(MailDates.format(message.getReceivedDate()));
 			dateLabel.setFont(dateLabel.getFont().deriveFont(11f));
 			dateLabel.setForeground(DATE_COLOR);

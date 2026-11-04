@@ -65,6 +65,28 @@ public class InboxModelTest {
 		assertEquals(1, model.getTotalCount());
 	}
 
+	@Test
+	public void flagsAndSortModes() {
+		InboxModel model = new InboxModel();
+		InboxMessage older = message("Ada <ada@example.com>", "bob@example.com", "Weekly report", hoursAgo(2), false, false);
+		InboxMessage newer = message("Cara <cara@example.com>", "ada@example.com", "Build failed", hoursAgo(1), true, true);
+		model.add(older);
+		model.add(newer);
+
+		model.setFlagged(older.getId(), true);
+		assertEquals(1, model.getFlaggedCount());
+		model.setFolder(InboxFolder.FLAGGED);
+		assertEquals(1, model.visibleMessages().size());
+		assertEquals(older.getId(), model.visibleMessages().get(0).getId());
+
+		model.setFolder(InboxFolder.INBOX);
+		model.setSortMode(SortMode.SUBJECT);
+		assertEquals(newer.getId(), model.visibleMessages().get(0).getId());
+
+		model.setSortMode(SortMode.FLAGGED_FIRST);
+		assertEquals(older.getId(), model.visibleMessages().get(0).getId());
+	}
+
 	private static InboxMessage message(String from, String to, String subject, Date received, boolean unread, boolean attachment) {
 		EmailModel email = new EmailModel();
 		email.setFrom(from);

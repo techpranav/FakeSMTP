@@ -15,7 +15,7 @@ import com.nilhcem.fakesmtp.model.InboxModel;
 import net.miginfocom.swing.MigLayout;
 
 /**
- * Inbox, Unread, All Emails, Attachments, and the SMTP log.
+ * Inbox, Unread, Flagged, All Emails, Attachments, and the SMTP log.
  *
  * @since 2.1
  */
@@ -27,6 +27,7 @@ public final class InboxSidebar extends JPanel {
 	private final InboxModel model;
 	private final JToggleButton inbox = item("folder.inbox");
 	private final JToggleButton unread = item("folder.unread");
+	private final JToggleButton flagged = item("folder.flagged");
 	private final JToggleButton all = item("folder.all");
 	private final JToggleButton attachments = item("folder.attachments");
 	private final JToggleButton log = item("folder.log");
@@ -35,7 +36,7 @@ public final class InboxSidebar extends JPanel {
 	private boolean updating;
 
 	public InboxSidebar(InboxModel model) {
-		super(new MigLayout("insets 14 10 14 10, wrap 1, gapy 4", "[grow,fill]", "[][][][]16[]"));
+		super(new MigLayout("insets 14 10 14 10, wrap 1, gapy 4", "[grow,fill]", "[][][][][]16[]"));
 		this.model = model;
 		setOpaque(true);
 		setBackground(SIDEBAR_BG);
@@ -43,12 +44,14 @@ public final class InboxSidebar extends JPanel {
 		ButtonGroup group = new ButtonGroup();
 		group.add(inbox);
 		group.add(unread);
+		group.add(flagged);
 		group.add(all);
 		group.add(attachments);
 		group.add(log);
 		inbox.setSelected(true);
 		inbox.addActionListener(event -> selectFolder(InboxFolder.INBOX));
 		unread.addActionListener(event -> selectFolder(InboxFolder.UNREAD));
+		flagged.addActionListener(event -> selectFolder(InboxFolder.FLAGGED));
 		all.addActionListener(event -> selectFolder(InboxFolder.ALL));
 		attachments.addActionListener(event -> selectFolder(InboxFolder.ATTACHMENTS));
 		log.addActionListener(event -> {
@@ -58,6 +61,7 @@ public final class InboxSidebar extends JPanel {
 		});
 		add(inbox);
 		add(unread);
+		add(flagged);
 		add(all);
 		add(attachments);
 		add(log);
@@ -81,6 +85,7 @@ public final class InboxSidebar extends JPanel {
 	public void refreshCounts() {
 		inbox.setText(label("folder.inbox", model.getTotalCount()));
 		unread.setText(label("folder.unread", model.getUnreadCount()));
+		flagged.setText(label("folder.flagged", model.getFlaggedCount()));
 		all.setText(label("folder.all", model.getTotalCount()));
 		attachments.setText(label("folder.attachments", model.getAttachmentCount()));
 		log.setText(InboxText.get("folder.log"));
