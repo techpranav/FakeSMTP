@@ -79,9 +79,9 @@ public final class DesktopNotificationBackend implements NotificationBackend {
 		if (trayIcon != null) {
 			return;
 		}
-		trayIcon = new TrayIcon(icon, "FakeSMTP");
+		trayIcon = new TrayIcon(icon, "MailBox");
 		trayIcon.setImageAutoSize(true);
-		trayIcon.setToolTip("FakeSMTP — click to open the latest email");
+		trayIcon.setToolTip("MailBox — click to open the latest email");
 		trayIcon.addActionListener(event -> activateLatest());
 		trayIcon.addMouseListener(new MouseAdapter() {
 			@Override
@@ -110,7 +110,7 @@ public final class DesktopNotificationBackend implements NotificationBackend {
 			return false;
 		}
 		try {
-			new ProcessBuilder("notify-send", "-a", "FakeSMTP", title, body).start();
+			new ProcessBuilder("notify-send", "-a", "MailBox", title, body).start();
 			return true;
 		} catch (IOException e) {
 			LOGGER.warn("notify-send failed", e);

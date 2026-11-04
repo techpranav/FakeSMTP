@@ -3,18 +3,18 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.nilhcem.fakesmtp</groupId>
-	<artifactId>fakesmtp</artifactId>
+	<artifactId>mailbox</artifactId>
 	<version>2.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
-	<name>Fake SMTP</name>
-	<description>Dummy SMTP server for testing</description>
-	<url>https://github.com/Nilhcem/FakeSMTP</url>
+	<name>MailBox</name>
+	<description>MailBox — Local Email Testing &amp; Inspection Studio. Capture. Preview. Inspect. Originated from the FakeSMTP project by Nilhcem.</description>
+	<url>https://github.com/techpranav/MailBox</url>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
-		<docker.image>fakesmtp</docker.image>
+		<docker.image>mailbox</docker.image>
 	</properties>
 
 	<dependencies>
@@ -116,7 +116,7 @@
 	</dependencies>
 
 	<build>
-		<finalName>fakeSMTP-${project.version}</finalName>
+		<finalName>MailBox</finalName>
 
 		<plugins>
 			<!-- Java 8 bytecode so the jar runs on Java 8 and every newer JDK -->
@@ -149,7 +149,7 @@
 				<configuration>
 					<systemPropertyVariables>
 						<java.awt.headless>true</java.awt.headless>
-						<fakesmtp.jar>${project.build.directory}/${project.build.finalName}.jar</fakesmtp.jar>
+						<mailbox.jar>${project.build.directory}/${project.build.finalName}.jar</mailbox.jar>
 					</systemPropertyVariables>
 				</configuration>
 				<executions>

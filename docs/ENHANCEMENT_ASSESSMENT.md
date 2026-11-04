@@ -1,4 +1,6 @@
-# FakeSMTP — Enhancement Assessment
+# FakeSMTP — Enhancement Assessment (historical)
+
+> Historical planning document written before the MailBox rebrand. Product name is now **MailBox**; technical package layout remains as described.
 
 ## Decision update
 

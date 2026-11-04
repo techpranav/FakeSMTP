@@ -15,13 +15,13 @@ mvn package
 The assembly plugin writes one executable jar:
 
 ```
-target/fakeSMTP-2.1-SNAPSHOT.jar
+target/MailBox.jar
 ```
 
 Run it with:
 
 ```
-java -jar target/fakeSMTP-2.1-SNAPSHOT.jar
+java -jar target/MailBox.jar
 ```
 
 The jar contains the application, Swing UI, FlatLaf, Flying Saucer, jsoup, jsvg, and SubEthaSMTP. There are no platform native libraries.
@@ -34,4 +34,4 @@ The jar contains the application, Swing UI, FlatLaf, Flying Saucer, jsoup, jsvg,
 
 ## What is preserved
 
-Command-line options, `.eml` file names, memory mode, background mode, and the SMTP server behavior are the same. UI preferences go to `~/.fakeSMTP-ui.properties` and do not replace `~/.fakeSMTP.properties`.
+Command-line options, `.eml` file names, memory mode, background mode, and the SMTP server behavior are the same. UI preferences go to `~/.mailbox-ui.properties` (legacy `~/.fakeSMTP-ui.properties` is still read). Server preferences go to `~/.mailbox.properties` (legacy `~/.fakeSMTP.properties` is still read).

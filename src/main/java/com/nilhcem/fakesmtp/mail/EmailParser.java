@@ -64,7 +64,7 @@ public final class EmailParser {
 	 * @param raw the original message, unchanged.
 	 * @param envelopeFrom the SMTP envelope sender, used when the header is missing.
 	 * @param envelopeTo the SMTP envelope recipient, used when the header is missing.
-	 * @param received when FakeSMTP stored the message.
+	 * @param received when MailBox stored the message.
 	 * @param filePath the saved {@code .eml} file, or {@code null} in memory mode.
 	 * @param loadRemoteImages whether remote images may be downloaded while preparing HTML.
 	 * @return the parsed message, or an unreadable placeholder.

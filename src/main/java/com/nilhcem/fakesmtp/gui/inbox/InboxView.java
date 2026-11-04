@@ -209,7 +209,7 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 
 	@Override
 	public void loadExternalImages(InboxMessage message) {
-		Thread thread = new Thread(() -> reprepare(message, true), "fakesmtp-images");
+		Thread thread = new Thread(() -> reprepare(message, true), "mailbox-images");
 		thread.setDaemon(true);
 		thread.start();
 	}
@@ -380,7 +380,7 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 		if (model.getSelected() != null) {
 			InboxMessage selected = model.getSelected();
 			boolean remote = UISettings.INSTANCE.getBoolean(UISettings.EXTERNAL_IMAGES);
-			Thread thread = new Thread(() -> reprepare(selected, remote), "fakesmtp-images");
+			Thread thread = new Thread(() -> reprepare(selected, remote), "mailbox-images");
 			thread.setDaemon(true);
 			thread.start();
 		}

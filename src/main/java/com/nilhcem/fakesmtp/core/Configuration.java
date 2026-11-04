@@ -19,7 +19,10 @@ public enum Configuration {
 	INSTANCE;
 
 	private static final String CONFIG_FILE = "/configuration.properties";
-	private static final String USER_CONFIG_FILE = ".fakeSMTP.properties";
+	/** Preferred MailBox user settings file. */
+	private static final String USER_CONFIG_FILE = ".mailbox.properties";
+	/** Legacy FakeSMTP settings file — still loaded for backward compatibility. */
+	private static final String LEGACY_USER_CONFIG_FILE = ".fakeSMTP.properties";
 	private final Properties config = new Properties();
 
 	/**
@@ -70,14 +73,14 @@ public enum Configuration {
 	public void saveToFile(File file) throws IOException {
 		FileOutputStream fos = new FileOutputStream(file);
 		try {
-			config.store(fos, "Last user settings");
+			config.store(fos, "MailBox user settings");
 		} finally {
 			IOUtils.closeQuietly(fos);
 		}
 	}
 
 	/**
-	 * Saves configuration to the {@code .fakesmtp.properties} file in user profile directory.
+	 * Saves configuration to {@code .mailbox.properties} in the user profile directory.
 	 * Calls {@link Configuration#saveToFile(java.io.File)}.
 	 *
 	 * @throws IOException
@@ -106,13 +109,18 @@ public enum Configuration {
 	}
 
 	/**
-	 * Loads configuration from the .fakesmtp.properties file in user profile directory.
-	 * Calls {@link Configuration#loadFromFile(java.io.File)}.
+	 * Loads configuration from the user profile.
+	 * <p>
+	 * Loads the legacy {@code .fakeSMTP.properties} first (if present), then
+	 * {@code .mailbox.properties} so newer MailBox settings override without losing old installs.
+	 * </p>
 	 *
 	 * @return INSTANCE.
 	 * @throws IOException
 	 */
 	public Configuration loadFromUserProfile() throws IOException {
-		return loadFromFile(new File(System.getProperty("user.home"), USER_CONFIG_FILE));
+		String home = System.getProperty("user.home");
+		loadFromFile(new File(home, LEGACY_USER_CONFIG_FILE));
+		return loadFromFile(new File(home, USER_CONFIG_FILE));
 	}
 }

@@ -92,7 +92,7 @@ public final class AttachmentFiles {
 	 * @throws IOException when the file cannot be written.
 	 */
 	public static File temporaryCopy(MailAttachment attachment) throws IOException {
-		File directory = new File(System.getProperty("java.io.tmpdir"), "fakesmtp-attachments");
+		File directory = new File(System.getProperty("java.io.tmpdir"), "mailbox-attachments");
 		File file = unique(directory, safeName(attachment.getFileName()));
 		write(file, attachment.getData());
 		file.deleteOnExit();

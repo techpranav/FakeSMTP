@@ -1,6 +1,6 @@
 # Architecture
 
-FakeSMTP is still the original SubEthaSMTP test server with a Swing window. The inbox is an extra view on the same receive path.
+MailBox is the original FakeSMTP SubEthaSMTP test server with a Swing inbox. The inbox is an extra view on the same receive path. Java packages remain `com.nilhcem.fakesmtp` for compatibility.
 
 ## Receive path
 
@@ -39,7 +39,7 @@ The reading pane tracks the viewport width so HTML reflows when the window is ma
 
 ## Preferences
 
-Server port and the output directory stay in `~/.fakeSMTP.properties`. Inbox preferences (theme, notifications, sort, window bounds) are stored separately in `~/.fakeSMTP-ui.properties`. Read/unread state lasts for the session. Messages loaded from the output directory are marked read and do not notify.
+Server port and the output directory stay in `~/.mailbox.properties` (legacy `~/.fakeSMTP.properties` is still loaded). Inbox preferences (theme, notifications, sort, window bounds) are stored separately in `~/.mailbox-ui.properties` (legacy `~/.fakeSMTP-ui.properties` is still loaded). Read/unread state lasts for the session. Messages loaded from the output directory are marked read and do not notify.
 
 ## Threads
 

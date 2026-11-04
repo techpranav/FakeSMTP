@@ -13,8 +13,9 @@ import org.slf4j.LoggerFactory;
 /**
  * User interface preferences (theme, notifications, reading options, window bounds).
  * <p>
- * Preferences are stored in {@code .fakeSMTP-ui.properties} in the user profile directory,
+ * Preferences are stored in {@code .mailbox-ui.properties} in the user profile directory,
  * separately from the {@link Configuration} file and from received emails.
+ * Legacy {@code .fakeSMTP-ui.properties} is still read when the MailBox file is absent.
  * Missing or invalid values fall back to safe defaults.
  * </p>
  *
@@ -43,7 +44,8 @@ public enum UISettings {
 	public static final String WINDOW_HEIGHT = "window.height";
 	public static final String WINDOW_MAXIMIZED = "window.maximized";
 
-	private static final String USER_SETTINGS_FILE = ".fakeSMTP-ui.properties";
+	private static final String USER_SETTINGS_FILE = ".mailbox-ui.properties";
+	private static final String LEGACY_USER_SETTINGS_FILE = ".fakeSMTP-ui.properties";
 	private static final Logger LOGGER = LoggerFactory.getLogger(UISettings.class);
 
 	private final Properties defaults = new Properties();
@@ -61,7 +63,21 @@ public enum UISettings {
 		defaults.setProperty(SORT_NEWEST_FIRST, "true");
 		defaults.setProperty(LOAD_SAVED_EMAILS, "true");
 		values = new Properties(defaults);
+		resolveSettingsFile();
 		load();
+	}
+
+	private void resolveSettingsFile() {
+		File home = new File(System.getProperty("user.home"));
+		File mailbox = new File(home, USER_SETTINGS_FILE);
+		File legacy = new File(home, LEGACY_USER_SETTINGS_FILE);
+		if (mailbox.isFile()) {
+			file = mailbox;
+		} else if (legacy.isFile()) {
+			file = legacy;
+		} else {
+			file = mailbox;
+		}
 	}
 
 	/**
@@ -133,9 +149,10 @@ public enum UISettings {
 	 * @throws IOException if the file cannot be written.
 	 */
 	public synchronized void save() throws IOException {
+		file = new File(System.getProperty("user.home"), USER_SETTINGS_FILE);
 		FileOutputStream fos = new FileOutputStream(file);
 		try {
-			values.store(fos, "FakeSMTP user interface settings");
+			values.store(fos, "MailBox user interface settings");
 		} finally {
 			IOUtils.closeQuietly(fos);
 		}

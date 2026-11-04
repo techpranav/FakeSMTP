@@ -1,12 +1,15 @@
-FakeSMTP
-========
+MailBox
+=======
 
-FakeSMTP is a free fake SMTP server with a modern inbox GUI for testing email in applications.
-It is written in Java and uses SubEthaSMTP.
+**Local Email Testing & Inspection Studio**
 
-Configure your application to use `localhost` (default port **25**) as the SMTP server. Every message is intercepted, saved as `.eml`, and shown in the inbox with HTML rendering, search, and desktop notifications.
+*Capture. Preview. Inspect.*
 
-Licensed under BSD or GPL, whichever you prefer.
+MailBox is a lightweight desktop application for local SMTP email testing, email capture, HTML email rendering, attachment inspection and developer-focused email diagnostics.
+
+Configure your application to use `localhost` (default port **25**) as the SMTP server. Every message is intercepted, saved as `.eml`, and shown in the inbox with HTML rendering, search, flags, export, and desktop notifications.
+
+MailBox originated from the [FakeSMTP](https://github.com/Nilhcem/FakeSMTP) project by Nilhcem. The SMTP stack, CLI options, and persistence behavior are preserved. Licensed under BSD or GPL, whichever you prefer.
 
 
 Requirements
@@ -23,7 +26,7 @@ Screenshots
 
 Empty inbox after starting the server on port 25:
 
-![FakeSMTP empty inbox](docs/images/screenshot-inbox-empty.png)
+![MailBox empty inbox](docs/images/screenshot-inbox-empty.png)
 
 HTML email rendered in the reading pane (tables, links, and charts):
 
@@ -43,18 +46,10 @@ From the project root:
 mvn clean package
 ```
 
-That runs unit tests, builds the executable fat jar, and (with `mvn verify`) also runs integration tests.
-
 Output file:
 
 ```text
-target/fakeSMTP-2.1-SNAPSHOT.jar
-```
-
-Skip tests only if you must:
-
-```bash
-mvn clean package -DskipTests
+target/MailBox.jar
 ```
 
 Recommended (full check):
@@ -69,24 +64,21 @@ Download the jar
 
 ### From a local build
 
-Copy the file Maven produced:
-
 ```text
-target/fakeSMTP-2.1-SNAPSHOT.jar
+target/MailBox.jar
 ```
 
 ### From GitHub Releases / Actions (when published)
 
-1. Open the repository on GitHub.
-2. Download `fakeSMTP-2.1-SNAPSHOT.jar` (or the release asset with the same name).
+1. Open [techpranav/MailBox](https://github.com/techpranav/MailBox).
+2. Download `MailBox.jar`.
 3. Keep Java 8+ installed on the machine that will run it.
 
-### From this branch (developers)
+### From this repository (developers)
 
 ```bash
-git clone https://github.com/techpranav/FakeSMTP.git
-cd FakeSMTP
-git checkout feature/modern-ui
+git clone https://github.com/techpranav/MailBox.git
+cd MailBox
 mvn clean package
 ```
 
@@ -94,40 +86,38 @@ mvn clean package
 Run the jar
 -----------
 
-Double-click the jar if your desktop supports it, or:
-
 ```bash
-java -jar fakeSMTP-2.1-SNAPSHOT.jar
+java -jar MailBox.jar
 ```
 
 Start listening immediately on port 25:
 
 ```bash
-java -jar fakeSMTP-2.1-SNAPSHOT.jar -s
+java -jar MailBox.jar -s
 ```
 
 Custom port and output folder:
 
 ```bash
-java -jar fakeSMTP-2.1-SNAPSHOT.jar -s -p 2525 -o received-emails
+java -jar MailBox.jar -s -p 2525 -o received-emails
 ```
 
 Background mode (no GUI — SMTP only):
 
 ```bash
-java -jar fakeSMTP-2.1-SNAPSHOT.jar -s -b -p 2525 -a 127.0.0.1 -o received-emails
+java -jar MailBox.jar -s -b -p 2525 -a 127.0.0.1 -o received-emails
 ```
 
 Memory mode (do not write `.eml` files):
 
 ```bash
-java -jar fakeSMTP-2.1-SNAPSHOT.jar -s -m
+java -jar MailBox.jar -s -m
 ```
 
 Help:
 
 ```bash
-java -jar fakeSMTP-2.1-SNAPSHOT.jar --help
+java -jar MailBox.jar --help
 ```
 
 Point your application SMTP host to `localhost` and the same port shown in the header (use **Copy host:port** to copy `localhost:25`).
@@ -148,9 +138,9 @@ Inbox features
 - Copy message, open emails folder, mark all read (`Ctrl+Shift+A`), delete (`Delete`)
 - Light / dark theme
 
-Settings live in `~/.fakeSMTP-ui.properties`. Port and output directory stay in `~/.fakeSMTP.properties`.
+Settings live in `~/.mailbox-ui.properties` (legacy `~/.fakeSMTP-ui.properties` is still read). Port and output directory use `~/.mailbox.properties` (legacy `~/.fakeSMTP.properties` is still read).
 
-See [`docs/FEATURES.md`](docs/FEATURES.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/TESTING.md`](docs/TESTING.md), and [`docs/BUILD_AND_RELEASE.md`](docs/BUILD_AND_RELEASE.md).
+See [`docs/FEATURES.md`](docs/FEATURES.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/TESTING.md`](docs/TESTING.md), [`docs/BUILD_AND_RELEASE.md`](docs/BUILD_AND_RELEASE.md), and [`docs/ULM_INTEGRATION.md`](docs/ULM_INTEGRATION.md).
 
 
 Notifications
@@ -160,8 +150,8 @@ Notifications are **on by default**.
 
 1. Toggle **Notifications** in the header, or open **Settings**.
 2. Click **Test desktop notification** to verify tray / toast on your machine.
-3. When a real email arrives, FakeSMTP shows an in-window toast and, when available, a system tray balloon (or `notify-send` on Linux).
-4. Click the toast or tray icon to focus FakeSMTP and open that message.
+3. When a real email arrives, MailBox shows an in-window toast and, when available, a system tray balloon (or `notify-send` on Linux).
+4. Click the toast or tray icon to focus MailBox and open that message.
 
 Optional: include a short preview, play a beep, or notify even while the window is focused.
 
@@ -180,26 +170,20 @@ mvn verify
 Usage on Docker
 ---------------
 
-Build from source (`src/main/docker/Dockerfile` uses Java 8):
+Build from source (preferred):
 
 ```bash
-mvn package docker:build -DskipTests
-docker run -ti -d -p 250:25 --privileged=true -v /home/fakesmtp/mail:/output fakesmtp
+mvn package
+docker build -f src/main/docker/Dockerfile -t mailbox target
+docker run -ti -d -p 250:25 -v /home/mailbox/mail:/output mailbox
 ```
 
-The root `Dockerfile` still downloads the upstream 2.0 zip.
+The root `Dockerfile` still downloads the upstream FakeSMTP 2.0 zip for historical reference.
 
 
-Alternatives
-------------
+Origin and license
+------------------
 
-**[SMTP4dev](http://smtp4dev.codeplex.com/)** — open source, Windows only (.NET).
+MailBox is a branded continuation of FakeSMTP. Upstream project: [Nilhcem/FakeSMTP](https://github.com/Nilhcem/FakeSMTP).
 
-**[DevNull SMTP](http://www.aboutmyip.com/AboutMyXApp/DevNullSmtp.jsp)** — lightweight, closed source, Java 1.4.
-
-
-Contact
--------
-
-Use the GitHub nickname (at) gmail (dot) com for the original author.
-For this fork, open issues on the repository.
+Copyright notices and the BSD/GPL dual license in `LICENSE.txt` are preserved.

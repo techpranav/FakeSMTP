@@ -190,7 +190,7 @@ public final class HtmlPreprocessor {
 			connection.setInstanceFollowRedirects(false);
 			connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
 			connection.setReadTimeout(READ_TIMEOUT_MS);
-			connection.setRequestProperty("User-Agent", "FakeSMTP");
+			connection.setRequestProperty("User-Agent", "MailBox");
 			if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
 				return null;
 			}

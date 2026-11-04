@@ -91,7 +91,7 @@ public final class MainPanel {
 		LegacyControls controls = new LegacyControls(portText, startServerBtn, saveMsgTextField,
 				nbReceivedLabel, clearAll, logsPane);
 		inboxView = new InboxView(controls, inboxModel, bridge, toast, windowRef, () ->
-				notificationBackend.show("FakeSMTP", "Desktop notifications are working.\nNew mail will appear here.", "test"));
+				notificationBackend.show("MailBox", "Desktop notifications are working.\nNew mail will appear here.", "test"));
 		toast.setHandler(messageId -> {
 			frame.setVisible(true);
 			frame.setExtendedState(frame.getExtendedState() & ~Frame.ICONIFIED);

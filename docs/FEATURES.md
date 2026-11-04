@@ -27,9 +27,9 @@ The overdue-approval sample renders like this:
 
 ## Notifications
 
-On by default. A new message shows the sender, subject, and a short preview (the preview can be hidden). FakeSMTP always shows an in-window toast, and also uses the system tray balloon on Windows/macOS when available (or `notify-send` on Linux). Clicking the toast or tray icon focuses FakeSMTP and opens that message. Settings include **Test desktop notification**. A sound is optional and off by default.
+On by default. A new message shows the sender, subject, and a short preview (the preview can be hidden). MailBox always shows an in-window toast, and also uses the system tray balloon on Windows/macOS when available (or `notify-send` on Linux). Clicking the toast or tray icon focuses MailBox and opens that message. Settings include **Test desktop notification**. A sound is optional and off by default.
 
-Notifications are skipped when the window is focused unless **Notify even when FakeSMTP is focused** is on. A notification failure does not affect delivery.
+Notifications are skipped when the window is focused unless **Notify even when MailBox is focused** is on. A notification failure does not affect delivery.
 
 ## Extra tools
 
@@ -40,7 +40,7 @@ Notifications are skipped when the window is focused unless **Notify even when F
 
 ## Themes and settings
 
-Light is the default. Dark is available from the header. Settings are saved in `~/.fakeSMTP-ui.properties`.
+Light is the default. Dark is available from the header. Settings are saved in `~/.mailbox-ui.properties` (legacy FakeSMTP UI settings files are still read).
 
 ## Limitations
 

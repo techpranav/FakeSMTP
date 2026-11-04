@@ -24,12 +24,12 @@ mvn verify
 
 `SendEmailsIT` sends mail to port 2525. It starts an embedded server when that port is free, and uses a server that is already running otherwise.
 
-`PackagedJarIT` launches `target/fakeSMTP-2.1-SNAPSHOT.jar` with `-s -b` and checks that a message is saved. Background mode does not open the window.
+`PackagedJarIT` launches `target/MailBox.jar` with `-s -b` and checks that a message is saved. Background mode does not open the window.
 
 ## Manual check
 
 ```
-java -jar target/fakeSMTP-2.1-SNAPSHOT.jar -p 2525 -s
+java -jar target/MailBox.jar -p 2525 -s
 ```
 
 Point a mailer at `localhost:2525`. Confirm the message appears, the HTML view matches the source, plain and raw views open, and a notification appears when the window is not focused.

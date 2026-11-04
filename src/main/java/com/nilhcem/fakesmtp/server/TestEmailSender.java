@@ -23,7 +23,7 @@ public final class TestEmailSender {
 	public static void sendSample() throws IOException {
 		try {
 			SMTPServerHandler.INSTANCE.getMailSaver().saveEmailAndNotify(
-					"tester@fakesmtp.local",
+					"tester@mailbox.local",
 					"developer@example.com",
 					TestEmailFactory.createSampleMessage());
 		} catch (RuntimeException e) {

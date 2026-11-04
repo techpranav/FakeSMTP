@@ -24,9 +24,13 @@ public class PackagedJarIT {
 
 	@Test
 	public void executableJarReceivesAnEmailInBackground() throws Exception {
-		File jar = new File(System.getProperty("fakesmtp.jar"));
+		String jarPath = System.getProperty("mailbox.jar");
+		if (jarPath == null || jarPath.isEmpty()) {
+			jarPath = System.getProperty("fakesmtp.jar");
+		}
+		File jar = new File(jarPath);
 		assertTrue("Packaged jar was not built: " + jar.getAbsolutePath(), jar.isFile());
-		File output = Files.createTempDirectory("fakesmtp-jar").toFile();
+		File output = Files.createTempDirectory("mailbox-jar").toFile();
 		String javaBin = new File(System.getProperty("java.home"), "bin/java").getAbsolutePath();
 		if (new File(javaBin + ".exe").isFile()) {
 			javaBin = javaBin + ".exe";
@@ -70,7 +74,7 @@ public class PackagedJarIT {
 				Thread.sleep(200);
 			}
 		}
-		throw new IllegalStateException("Packaged FakeSMTP did not open port " + PORT, last);
+		throw new IllegalStateException("Packaged MailBox did not open port " + PORT, last);
 	}
 
 	private static void sendMessage() throws Exception {

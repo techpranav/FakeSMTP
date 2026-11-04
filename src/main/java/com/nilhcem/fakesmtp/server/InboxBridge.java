@@ -48,7 +48,7 @@ public final class InboxBridge implements Observer {
 		this.inbox = inbox;
 		this.notifier = notifier;
 		executor = Executors.newSingleThreadExecutor(runnable -> {
-			Thread thread = new Thread(runnable, "fakesmtp-mail");
+			Thread thread = new Thread(runnable, "mailbox-mail");
 			thread.setDaemon(true);
 			return thread;
 		});

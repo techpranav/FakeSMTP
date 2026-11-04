@@ -51,6 +51,14 @@ public final class InboxHeader extends JPanel {
 		setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(0xE0E3E7)));
 		JLabel brand = new JLabel(InboxText.get("header.brand"));
 		brand.setFont(brand.getFont().deriveFont(Font.BOLD, brand.getFont().getSize() + 4f));
+		brand.setForeground(new Color(0x0F766E));
+		JLabel tagline = new JLabel(InboxText.get("header.tagline"));
+		tagline.setForeground(new Color(0x5F6368));
+		tagline.setFont(tagline.getFont().deriveFont(Font.PLAIN, Math.max(10f, tagline.getFont().getSize() - 1f)));
+		JPanel brandBlock = new JPanel(new java.awt.BorderLayout(0, 0));
+		brandBlock.setOpaque(false);
+		brandBlock.add(brand, java.awt.BorderLayout.NORTH);
+		brandBlock.add(tagline, java.awt.BorderLayout.SOUTH);
 		status.setOpaque(true);
 		status.setBorder(BorderFactory.createEmptyBorder(4, STATUS_PAD, 4, STATUS_PAD));
 		status.putClientProperty("JComponent.roundRect", Boolean.TRUE);
@@ -85,7 +93,7 @@ public final class InboxHeader extends JPanel {
 				themeChanged.run();
 			}
 		});
-		add(brand);
+		add(brandBlock);
 		add(status);
 		add(new JLabel(InboxText.get("header.port")));
 		add(controls.getPort().get(), "w 72!");

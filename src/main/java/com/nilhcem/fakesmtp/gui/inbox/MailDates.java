@@ -5,7 +5,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Date;
 
 /**
- * Formats the time FakeSMTP received a message.
+ * Formats the time MailBox received a message.
  *
  * @since 2.1
  */

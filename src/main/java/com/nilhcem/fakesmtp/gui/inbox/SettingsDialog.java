@@ -17,7 +17,7 @@ import com.nilhcem.fakesmtp.core.UISettings;
 import net.miginfocom.swing.MigLayout;
 
 /**
- * Edits inbox preferences and writes them to {@code .fakeSMTP-ui.properties}.
+ * Edits inbox preferences and writes them to {@code .mailbox-ui.properties}.
  *
  * @since 2.1
  */

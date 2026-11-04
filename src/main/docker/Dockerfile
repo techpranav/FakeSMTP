@@ -2,10 +2,10 @@ FROM eclipse-temurin:8-jre
 
 RUN mkdir -p /output
 
-ADD fakeSMTP-2.1-SNAPSHOT.jar /fakeSMTP.jar
+ADD MailBox.jar /MailBox.jar
 
 VOLUME /output
 
 EXPOSE 25
 
-ENTRYPOINT ["java","-jar","/fakeSMTP.jar","--background", "--output-dir", "/output", "--port", "25", "--start-server"]
+ENTRYPOINT ["java","-jar","/MailBox.jar","--background", "--output-dir", "/output", "--port", "25", "--start-server"]

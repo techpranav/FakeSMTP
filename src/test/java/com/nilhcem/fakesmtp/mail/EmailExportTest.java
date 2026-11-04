@@ -20,10 +20,10 @@ public class EmailExportTest {
 	@Test
 	public void writesMsgEmlAndScreenshot() throws Exception {
 		String raw = TestEmailFactory.buildRaw();
-		ParsedEmail parsed = EmailParser.parse(raw, "tester@fakesmtp.local", "developer@example.com", new Date(),
+		ParsedEmail parsed = EmailParser.parse(raw, "tester@mailbox.local", "developer@example.com", new Date(),
 				folder.newFile("sample.eml").getAbsolutePath(), false);
 		EmailModel email = new EmailModel();
-		email.setFrom("tester@fakesmtp.local");
+		email.setFrom("tester@mailbox.local");
 		email.setTo("developer@example.com");
 		email.setSubject(parsed.getSubject());
 		email.setReceivedDate(new Date());
