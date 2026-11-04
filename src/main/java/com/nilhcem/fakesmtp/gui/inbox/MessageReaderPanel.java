@@ -3,11 +3,14 @@ package com.nilhcem.fakesmtp.gui.inbox;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Image;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -185,7 +188,7 @@ public final class MessageReaderPanel extends JPanel {
 
 		JPanel headingPad = new JPanel(new BorderLayout());
 		headingPad.setOpaque(false);
-		headingPad.setBorder(BorderFactory.createEmptyBorder(8, 14, 4, 14));
+		headingPad.setBorder(BorderFactory.createEmptyBorder(UiTokens.SPACE_SM, UiTokens.SPACE_MD, UiTokens.SPACE_XS, UiTokens.SPACE_MD));
 		headingPad.add(heading, BorderLayout.CENTER);
 
 		JPanel top = new JPanel(new BorderLayout());
@@ -291,17 +294,17 @@ public final class MessageReaderPanel extends JPanel {
 		JPanel titleRow = new JPanel(new BorderLayout());
 		titleRow.setOpaque(false);
 		titleRow.setAlignmentX(LEFT_ALIGNMENT);
+		titleRow.setBorder(BorderFactory.createEmptyBorder(UiTokens.SPACE_XS, 0, 0, 0));
 		JLabel title = new JLabel(InboxText.get("attach.title"));
 		title.setFont(title.getFont().deriveFont(Font.BOLD, 12f));
 		title.setForeground(UiTokens.TEXT);
-		JButton saveAll = new JButton(InboxText.get("attach.saveAll"));
-		saveAll.putClientProperty("JButton.buttonType", "toolBarButton");
+		JButton saveAll = tiny(InboxText.get("attach.saveAll"));
 		saveAll.addActionListener(event -> saveAll(parsed));
 		titleRow.add(title, BorderLayout.WEST);
 		titleRow.add(saveAll, BorderLayout.EAST);
 		attachmentBox.add(titleRow);
-		attachmentBox.add(Box.createVerticalStrut(4));
-		JPanel cards = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
+		attachmentBox.add(Box.createVerticalStrut(UiTokens.SPACE_XS));
+		JPanel cards = new JPanel(new FlowLayout(FlowLayout.LEFT, UiTokens.SPACE_SM, UiTokens.SPACE_XS));
 		cards.setOpaque(false);
 		cards.setAlignmentX(LEFT_ALIGNMENT);
 		for (MailAttachment attachment : parsed.getAttachments()) {
@@ -309,36 +312,61 @@ public final class MessageReaderPanel extends JPanel {
 		}
 		attachmentBox.add(cards);
 		attachmentBox.revalidate();
-		int height = Math.min(110, Math.max(56, attachmentBox.getPreferredSize().height + 8));
+		int height = Math.min(118, Math.max(UiTokens.ATTACH_CARD_HEIGHT + 24, attachmentBox.getPreferredSize().height + 4));
 		attachmentScroll.setPreferredSize(new Dimension(10, height));
 	}
 
 	private JPanel attachmentCard(MailAttachment attachment) {
-		JPanel card = new JPanel(new BorderLayout(6, 2));
+		JPanel card = new JPanel(new BorderLayout(UiTokens.SPACE_SM, 0));
 		card.setOpaque(true);
 		card.setBackground(UiTokens.APP_BG);
 		card.setBorder(UiTokens.cardBorder());
-		card.setPreferredSize(new Dimension(210, 58));
+		card.setPreferredSize(new Dimension(UiTokens.ATTACH_CARD_WIDTH, UiTokens.ATTACH_CARD_HEIGHT));
+		card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		card.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseEntered(MouseEvent event) {
+				card.setBackground(UiTokens.HOVER_BG);
+			}
+
+			@Override
+			public void mouseExited(MouseEvent event) {
+				card.setBackground(UiTokens.APP_BG);
+			}
+		});
+
 		String type = extensionLabel(attachment.getFileName());
 		JLabel icon = new JLabel(type);
 		icon.setOpaque(true);
 		icon.setBackground(UiTokens.AVATAR_BG);
 		icon.setForeground(UiTokens.AVATAR_FG);
 		icon.setFont(icon.getFont().deriveFont(Font.BOLD, 10f));
-		icon.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
+		icon.setBorder(BorderFactory.createEmptyBorder(8, 7, 8, 7));
 		icon.setHorizontalAlignment(JLabel.CENTER);
+		icon.setPreferredSize(new Dimension(36, 36));
 		card.add(icon, BorderLayout.WEST);
-		JPanel meta = new JPanel(new BorderLayout(0, 0));
+
+		JPanel meta = new JPanel(new BorderLayout(0, 1));
 		meta.setOpaque(false);
-		String fileName = attachment.getFileName();
-		if (fileName != null && fileName.length() > 24) {
-			fileName = fileName.substring(0, 23) + "\u2026";
+		String rawName = attachment.getFileName();
+		String displayName = rawName;
+		if (displayName != null && displayName.length() > 26) {
+			displayName = displayName.substring(0, 25) + "\u2026";
 		}
-		JLabel name = new JLabel(fileName + "  ·  " + attachment.getSize() + " B");
+		JLabel name = new JLabel(displayName == null ? "attachment" : displayName);
+		name.setToolTipText(rawName);
 		name.setForeground(UiTokens.TEXT);
-		name.setFont(name.getFont().deriveFont(12f));
-		meta.add(name, BorderLayout.NORTH);
-		JPanel actionsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+		name.setFont(name.getFont().deriveFont(Font.BOLD, 12f));
+		JLabel size = new JLabel(formatSize(attachment.getSize()));
+		size.setForeground(UiTokens.TEXT_SECONDARY);
+		size.setFont(UiTokens.compactFont(size.getFont()));
+		JPanel title = new JPanel(new BorderLayout(0, 0));
+		title.setOpaque(false);
+		title.add(name, BorderLayout.NORTH);
+		title.add(size, BorderLayout.SOUTH);
+		meta.add(title, BorderLayout.NORTH);
+
+		JPanel actionsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
 		actionsRow.setOpaque(false);
 		JButton preview = tiny(InboxText.get("attach.preview"));
 		preview.addActionListener(event -> previewAttachment(attachment));
@@ -352,6 +380,16 @@ public final class MessageReaderPanel extends JPanel {
 		meta.add(actionsRow, BorderLayout.SOUTH);
 		card.add(meta, BorderLayout.CENTER);
 		return card;
+	}
+
+	private static String formatSize(long bytes) {
+		if (bytes < 1024L) {
+			return bytes + " B";
+		}
+		if (bytes < 1024L * 1024L) {
+			return String.format(java.util.Locale.ROOT, "%.1f KB", bytes / 1024.0);
+		}
+		return String.format(java.util.Locale.ROOT, "%.1f MB", bytes / (1024.0 * 1024.0));
 	}
 
 	private static String extensionLabel(String name) {

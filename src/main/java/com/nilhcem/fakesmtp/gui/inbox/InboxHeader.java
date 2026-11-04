@@ -11,8 +11,10 @@ import java.io.IOException;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JSeparator;
 import javax.swing.JToggleButton;
 import javax.swing.SwingConstants;
 
@@ -45,7 +47,7 @@ public final class InboxHeader extends JPanel {
 	private Runnable testEmailAction;
 
 	public InboxHeader(LegacyControls controls) {
-		super(new MigLayout("insets 8 14 8 14", "[]14[grow][]", "[]"));
+		super(new MigLayout("insets 6 14 6 14, gapx 10", "[]10[grow]10[]10[]", "[]"));
 		this.controls = controls;
 		setOpaque(true);
 		setBackground(UiTokens.SURFACE);
@@ -57,23 +59,29 @@ public final class InboxHeader extends JPanel {
 		brand.setForeground(UiTokens.ACCENT);
 		JLabel tagline = new JLabel(InboxText.get("header.tagline"));
 		tagline.setForeground(UiTokens.TEXT_SECONDARY);
-		tagline.setFont(UiTokens.secondaryFont(tagline.getFont()));
+		tagline.setFont(UiTokens.compactFont(tagline.getFont()));
 		JPanel brandBlock = new JPanel(new BorderLayout(0, 0));
 		brandBlock.setOpaque(false);
 		brandBlock.add(brand, BorderLayout.NORTH);
 		brandBlock.add(tagline, BorderLayout.SOUTH);
 
 		status.setOpaque(true);
-		status.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
+		status.setBorder(BorderFactory.createEmptyBorder(3, 10, 3, 10));
 		status.putClientProperty("JComponent.roundRect", Boolean.TRUE);
 		controls.getPort().get().setColumns(4);
 		controls.getPort().get().putClientProperty("JComponent.roundRect", Boolean.TRUE);
+		styleControl(controls.getPort().get());
+		styleControl(controls.getServer().get());
+		styleControl(controls.getServer().getStopButton());
 
-		JPanel smtp = new JPanel(new MigLayout("insets 0, gap 6", "[][][][][][]", "[]"));
+		JPanel smtp = new JPanel(new MigLayout("insets 0, gap 6", "[][][][][][][]", "[]"));
 		smtp.setOpaque(false);
 		smtp.add(status);
-		smtp.add(new JLabel(InboxText.get("header.port")));
-		smtp.add(controls.getPort().get(), "w 64!");
+		JLabel portLabel = new JLabel(InboxText.get("header.port"));
+		portLabel.setForeground(UiTokens.TEXT_SECONDARY);
+		portLabel.setFont(UiTokens.secondaryFont(portLabel.getFont()));
+		smtp.add(portLabel);
+		smtp.add(controls.getPort().get(), "w 56!, h " + UiTokens.CONTROL_HEIGHT + "!");
 		smtp.add(controls.getServer().get());
 		smtp.add(controls.getServer().getStopButton());
 		JButton testEmail = quietButton(InboxText.get("header.testEmail"));
@@ -101,6 +109,8 @@ public final class InboxHeader extends JPanel {
 		});
 		notifications.setSelected(UISettings.INSTANCE.getBoolean(UISettings.NOTIFICATIONS_ENABLED));
 		notifications.addActionListener(event -> saveNotifications());
+		styleControl(notifications);
+		styleControl(theme);
 		if (UISettings.INSTANCE.isDarkTheme()) {
 			theme.setSelectedIndex(1);
 		}
@@ -110,22 +120,45 @@ public final class InboxHeader extends JPanel {
 			}
 		});
 
+		JSeparator divider = new JSeparator(SwingConstants.VERTICAL);
+		divider.setPreferredSize(new Dimension(1, 22));
+		divider.setForeground(UiTokens.BORDER);
+
 		JPanel actions = new JPanel(new MigLayout("insets 0, gap 6", "[][][]", "[]"));
 		actions.setOpaque(false);
 		actions.add(notifications);
-		actions.add(theme);
+		actions.add(theme, "w 84!");
 		actions.add(settings);
 
 		add(brandBlock);
 		add(smtp, "grow");
+		add(divider, "growy, hmax 24");
 		add(actions);
 		syncServerState();
 	}
 
 	private static JButton quietButton(String text) {
 		JButton button = new JButton(text);
-		button.putClientProperty("JButton.buttonType", "toolBarButton");
+		styleButton(button);
 		return button;
+	}
+
+	private static void styleButton(JButton button) {
+		button.putClientProperty("JButton.buttonType", "toolBarButton");
+		button.setFont(UiTokens.secondaryFont(button.getFont()));
+		Dimension preferred = button.getPreferredSize();
+		preferred.height = UiTokens.CONTROL_HEIGHT;
+		button.setPreferredSize(preferred);
+	}
+
+	private static void styleControl(JComponent component) {
+		component.setFont(UiTokens.secondaryFont(component.getFont()));
+		Dimension preferred = component.getPreferredSize();
+		preferred.height = UiTokens.CONTROL_HEIGHT;
+		component.setPreferredSize(preferred);
+		if (component instanceof javax.swing.AbstractButton) {
+			component.putClientProperty("JButton.buttonType", "toolBarButton");
+		}
 	}
 
 	public void setSettingsAction(Runnable settingsAction) {

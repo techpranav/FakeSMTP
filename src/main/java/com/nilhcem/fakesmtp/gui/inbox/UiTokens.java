@@ -37,12 +37,17 @@ public final class UiTokens {
 	public static final int SPACE_SM = 8;
 	public static final int SPACE_MD = 12;
 	public static final int SPACE_LG = 16;
-	public static final int HEADER_HEIGHT = 56;
+	public static final int HEADER_HEIGHT = 52;
 	public static final int SIDEBAR_WIDTH = 200;
 	public static final int LIST_WIDTH = 300;
-	public static final int LIST_ROW_HEIGHT = 76;
-	public static final int AVATAR_SIZE = 32;
+	public static final int LIST_ROW_HEIGHT = 74;
+	public static final int AVATAR_SIZE = 30;
+	public static final int ATTACH_CARD_WIDTH = 220;
+	public static final int ATTACH_CARD_HEIGHT = 62;
+	public static final int CONTROL_HEIGHT = 28;
 	public static final int RADIUS = 8;
+	public static final Color HOVER_BG = new Color(0xF0F3F8);
+	public static final Color PREVIEW_MUTED = new Color(0x8A93A3);
 
 	private UiTokens() {
 		throw new UnsupportedOperationException();
@@ -53,10 +58,18 @@ public final class UiTokens {
 	}
 
 	public static Font subjectFont(Font base) {
-		return base.deriveFont(Font.BOLD, 17f);
+		return base.deriveFont(Font.BOLD, 16f);
 	}
 
 	public static Font secondaryFont(Font base) {
+		return base.deriveFont(Font.PLAIN, 12f);
+	}
+
+	public static Font compactFont(Font base) {
+		return base.deriveFont(Font.PLAIN, 11f);
+	}
+
+	public static Font statusFont(Font base) {
 		return base.deriveFont(Font.PLAIN, 12f);
 	}
 

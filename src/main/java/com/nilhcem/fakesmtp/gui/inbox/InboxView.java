@@ -349,16 +349,129 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 	}
 
 	private JPanel statusBar() {
-		JPanel bar = new JPanel(new MigLayout("insets 6 12 6 12", "[][grow,fill]push[][]", "[]"));
+		JPanel bar = new JPanel(new MigLayout("insets 3 12 3 12, gapx 6",
+				"[][][][][][grow][][]", "[]"));
 		bar.setOpaque(true);
-		bar.setBackground(UiTokens.SURFACE);
+		bar.setBackground(UiTokens.APP_BG);
 		bar.setBorder(javax.swing.BorderFactory.createMatteBorder(1, 0, 0, 0, UiTokens.BORDER));
-		bar.add(new JLabel(InboxText.get("status.saving")));
-		bar.add(controls.getSaveDirectory().get(), "wmin 180");
-		bar.add(controls.getReceived().get());
-		bar.add(new JLabel(InboxText.get("status.received")));
-		bar.add(controls.getClearAll().get());
+		bar.setPreferredSize(new Dimension(10, 32));
+
+		javax.swing.JTextField pathField = controls.getSaveDirectory().get();
+		// Detach legacy field from the visible chrome; DirChooser observers still use SaveMsgField.
+		pathField.setVisible(false);
+		pathField.setFocusable(false);
+
+		javax.swing.Icon directoryIcon = javax.swing.UIManager.getIcon("FileView.directoryIcon");
+		JLabel folderIcon = directoryIcon == null ? new JLabel("\u25A1") : new JLabel(directoryIcon);
+		folderIcon.setToolTipText(pathField.getToolTipText());
+
+		JLabel storageLabel = new JLabel(InboxText.get("status.storage"));
+		storageLabel.setForeground(UiTokens.TEXT_SECONDARY);
+		storageLabel.setFont(UiTokens.statusFont(storageLabel.getFont()));
+		storageLabel.setBorder(null);
+
+		JLabel pathLabel = new JLabel(shortStoragePath(pathField.getText()));
+		pathLabel.setOpaque(false);
+		pathLabel.setBorder(null);
+		pathLabel.setForeground(UiTokens.TEXT);
+		pathLabel.setFont(UiTokens.statusFont(pathLabel.getFont()));
+		pathLabel.setToolTipText(pathField.getText());
+		pathField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+			@Override
+			public void insertUpdate(javax.swing.event.DocumentEvent event) {
+				syncPathLabel(pathField, pathLabel);
+			}
+
+			@Override
+			public void removeUpdate(javax.swing.event.DocumentEvent event) {
+				syncPathLabel(pathField, pathLabel);
+			}
+
+			@Override
+			public void changedUpdate(javax.swing.event.DocumentEvent event) {
+				syncPathLabel(pathField, pathLabel);
+			}
+		});
+
+		javax.swing.JButton openFolder = chromeButton(InboxText.get("status.openFolder"));
+		openFolder.setToolTipText(InboxText.get("reader.folder"));
+		openFolder.addActionListener(event -> openEmailsFolder());
+
+		javax.swing.JButton changeFolder = chromeButton(InboxText.get("status.changeFolder"));
+		changeFolder.setToolTipText(pathField.getToolTipText());
+		changeFolder.setEnabled(!ArgsHandler.INSTANCE.memoryModeEnabled());
+		changeFolder.addActionListener(event -> controls.getSaveDirectory().requestChooseDirectory());
+
+		JLabel received = controls.getReceived().get();
+		received.setVisible(false);
+		JLabel countLabel = new JLabel(emailCountText(received.getText()));
+		countLabel.setOpaque(false);
+		countLabel.setBorder(null);
+		countLabel.setForeground(UiTokens.TEXT_SECONDARY);
+		countLabel.setFont(UiTokens.statusFont(countLabel.getFont()));
+		received.addPropertyChangeListener("text", event ->
+				countLabel.setText(emailCountText(received.getText())));
+
+		javax.swing.JButton clear = controls.getClearAll().get();
+		clear.putClientProperty("JButton.buttonType", "toolBarButton");
+		clear.setFont(UiTokens.statusFont(clear.getFont()));
+
+		bar.add(folderIcon);
+		bar.add(storageLabel);
+		bar.add(pathLabel);
+		bar.add(openFolder);
+		if (!ArgsHandler.INSTANCE.memoryModeEnabled()) {
+			bar.add(changeFolder);
+		}
+		bar.add(countLabel, "gapbefore push");
+		bar.add(clear);
 		return bar;
+	}
+
+	private static String emailCountText(String raw) {
+		int count = 0;
+		try {
+			count = Integer.parseInt(raw == null ? "0" : raw.trim());
+		} catch (NumberFormatException ignored) {
+			count = 0;
+		}
+		if (count == 1) {
+			return InboxText.format("status.emails", Integer.valueOf(count));
+		}
+		return InboxText.format("status.emails.plural", Integer.valueOf(count));
+	}
+
+	private static void syncPathLabel(javax.swing.JTextField pathField, JLabel pathLabel) {
+		String path = pathField.getText();
+		pathLabel.setText(shortStoragePath(path));
+		pathLabel.setToolTipText(path);
+	}
+
+	private static String shortStoragePath(String path) {
+		if (Texts.isBlank(path)) {
+			return InboxText.get("status.memory");
+		}
+		File file = new File(path);
+		String name = file.getName();
+		if (Texts.isBlank(name)) {
+			return path;
+		}
+		File parent = file.getParentFile();
+		if (parent == null) {
+			return name;
+		}
+		String parentName = parent.getName();
+		if (Texts.isBlank(parentName)) {
+			return name;
+		}
+		return parentName + File.separator + name;
+	}
+
+	private static javax.swing.JButton chromeButton(String text) {
+		javax.swing.JButton button = new javax.swing.JButton(text);
+		button.putClientProperty("JButton.buttonType", "toolBarButton");
+		button.setFont(UiTokens.statusFont(button.getFont()));
+		return button;
 	}
 
 	private static JPanel wrapLogs(javax.swing.JComponent logs) {

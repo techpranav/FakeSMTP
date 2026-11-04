@@ -26,11 +26,11 @@ Screenshots
 
 Polished three-pane inbox (sidebar, list with avatars, compact reading pane):
 
-![MailBox polished UI](docs/images/screenshot-ui-polish.png)
+![MailBox polished UI](docs/images/screenshot-ui-refine.png)
 
 Reading pane detail (compact header, attachment cards, HTML body):
 
-![MailBox reading pane](docs/images/screenshot-reader-polish.png)
+![MailBox reading pane](docs/images/screenshot-reader-refine.png)
 
 HTML email rendering (tables, links, and charts):
 

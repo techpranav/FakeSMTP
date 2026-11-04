@@ -30,19 +30,19 @@ public final class MessageHeaderPanel extends JPanel {
 	private final JLabel date = new JLabel(" ");
 	private final JLabel recipients = new JLabel(" ");
 	private final JLabel detailsToggle = new JLabel(InboxText.get("reader.details.show"));
-	private final JPanel details = new JPanel(new MigLayout("insets 4 0 0 0, fillx, gap 0 2", "[grow,fill]", "[]"));
+	private final JPanel details = new JPanel(new MigLayout("insets 2 0 0 0, fillx, gap 0 2", "[grow,fill]", "[]"));
 	private final JLabel detailsText = new JLabel(" ");
 	private boolean detailsOpen;
 
 	public MessageHeaderPanel() {
-		super(new MigLayout("insets 0, fillx, gap 0 2", "[grow,fill]", "[]4[]2[]0[]"));
+		super(new MigLayout("insets 0, fillx, gap 0 2", "[grow,fill]", "[]2[]1[]0[]"));
 		setOpaque(false);
 
 		subject.setFont(UiTokens.subjectFont(subject.getFont()));
 		subject.setForeground(UiTokens.TEXT);
 		add(subject, "growx, wrap");
 
-		JPanel identity = new JPanel(new BorderLayout(8, 0));
+		JPanel identity = new JPanel(new BorderLayout(UiTokens.SPACE_SM, 0));
 		identity.setOpaque(false);
 		avatar.setPreferredSize(new java.awt.Dimension(UiTokens.AVATAR_SIZE, UiTokens.AVATAR_SIZE));
 		identity.add(avatar, BorderLayout.WEST);
@@ -50,10 +50,10 @@ public final class MessageHeaderPanel extends JPanel {
 		sender.setForeground(UiTokens.TEXT);
 		sender.setFont(sender.getFont().deriveFont(Font.BOLD, 13f));
 		date.setForeground(UiTokens.TEXT_SECONDARY);
-		date.setFont(UiTokens.secondaryFont(date.getFont()));
+		date.setFont(UiTokens.compactFont(date.getFont()));
 		date.setHorizontalAlignment(SwingConstants.RIGHT);
 
-		JPanel senderRow = new JPanel(new BorderLayout(8, 0));
+		JPanel senderRow = new JPanel(new BorderLayout(UiTokens.SPACE_SM, 0));
 		senderRow.setOpaque(false);
 		senderRow.add(sender, BorderLayout.CENTER);
 		senderRow.add(date, BorderLayout.EAST);
@@ -61,11 +61,9 @@ public final class MessageHeaderPanel extends JPanel {
 		add(identity, "growx, wrap");
 
 		recipients.setForeground(UiTokens.TEXT_SECONDARY);
-		recipients.setFont(UiTokens.secondaryFont(recipients.getFont()));
-		add(recipients, "growx, wrap");
-
+		recipients.setFont(UiTokens.compactFont(recipients.getFont()));
 		detailsToggle.setForeground(UiTokens.ACCENT);
-		detailsToggle.setFont(UiTokens.secondaryFont(detailsToggle.getFont()));
+		detailsToggle.setFont(UiTokens.compactFont(detailsToggle.getFont()));
 		detailsToggle.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 		detailsToggle.addMouseListener(new MouseAdapter() {
 			@Override
@@ -73,19 +71,24 @@ public final class MessageHeaderPanel extends JPanel {
 				toggleDetails();
 			}
 		});
-		add(detailsToggle, "wrap");
+
+		JPanel recipientRow = new JPanel(new BorderLayout(UiTokens.SPACE_SM, 0));
+		recipientRow.setOpaque(false);
+		recipientRow.add(recipients, BorderLayout.CENTER);
+		recipientRow.add(detailsToggle, BorderLayout.EAST);
+		add(recipientRow, "growx, wrap");
 
 		details.setOpaque(false);
 		details.setVisible(false);
 		detailsText.setForeground(UiTokens.TEXT_SECONDARY);
-		detailsText.setFont(UiTokens.secondaryFont(detailsText.getFont()));
+		detailsText.setFont(UiTokens.compactFont(detailsText.getFont()));
 		detailsText.setVerticalAlignment(SwingConstants.TOP);
 		details.add(detailsText, "growx");
 		add(details, "growx, wrap, hidemode 3");
 
 		setBorder(BorderFactory.createCompoundBorder(
 				UiTokens.bottomHairline(),
-				BorderFactory.createEmptyBorder(0, 0, 6, 0)));
+				BorderFactory.createEmptyBorder(0, 0, UiTokens.SPACE_SM, 0)));
 	}
 
 	public void showMessage(InboxMessage message) {
@@ -101,9 +104,9 @@ public final class MessageHeaderPanel extends JPanel {
 		String reply = ParsedEmail.join(parsed.getReplyTo());
 
 		StringBuilder summary = new StringBuilder();
-		summary.append(InboxText.get("reader.to")).append(": ").append(shorten(to, 90));
+		summary.append(InboxText.get("reader.to")).append(": ").append(shorten(to, 72));
 		if (!Texts.isBlank(cc)) {
-			summary.append("   ").append(InboxText.get("reader.cc")).append(": ").append(shorten(cc, 40));
+			summary.append("   ").append(InboxText.get("reader.cc")).append(": ").append(shorten(cc, 36));
 		}
 		recipients.setText(summary.toString());
 

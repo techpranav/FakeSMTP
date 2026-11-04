@@ -245,10 +245,12 @@ public final class MessageListPanel extends JPanel {
 				int index, boolean selected, boolean focus) {
 			probe.getListCellRendererComponent(list, message, index, selected, focus);
 
-			JPanel row = new JPanel(new BorderLayout(10, 0));
+			JPanel row = new JPanel(new BorderLayout(8, 0));
 			row.setBorder(BorderFactory.createCompoundBorder(
-					BorderFactory.createMatteBorder(0, 0, 1, 0, UiTokens.BORDER),
-					BorderFactory.createEmptyBorder(8, 6, 8, 6)));
+					BorderFactory.createCompoundBorder(
+							BorderFactory.createMatteBorder(0, selected ? 3 : 0, 0, 0, UiTokens.ACCENT),
+							BorderFactory.createMatteBorder(0, 0, 1, 0, UiTokens.BORDER)),
+					BorderFactory.createEmptyBorder(7, selected ? 5 : 8, 7, 6)));
 			row.setBackground(selected ? UiTokens.SELECTED_BG : UiTokens.SURFACE);
 			row.setOpaque(true);
 
@@ -259,61 +261,61 @@ public final class MessageListPanel extends JPanel {
 			boolean attachments = false;
 			if (parsed != null) {
 				if (!Texts.isBlank(parsed.senderLine())) {
-					sender = shorten(parsed.senderLine(), 36);
+					sender = shorten(parsed.senderLine(), 34);
 				}
 				if (!Texts.isBlank(parsed.getSubject())) {
-					subject = shorten(parsed.getSubject(), 44);
+					subject = shorten(parsed.getSubject(), 42);
 				}
-				preview = shorten(parsed.getPreview(), 64);
+				preview = shorten(parsed.getPreview(), 58);
 				attachments = parsed.hasAttachments();
 			}
 
 			AvatarLabel avatar = new AvatarLabel();
 			avatar.setIdentity(parsed == null ? sender : parsed.senderLine());
-			JPanel west = new JPanel(new BorderLayout(6, 0));
+			JPanel west = new JPanel(new BorderLayout(4, 0));
 			west.setOpaque(false);
 			if (!message.isRead()) {
 				JLabel dot = new JLabel("\u25CF");
 				dot.setForeground(UiTokens.ACCENT);
-				dot.setFont(dot.getFont().deriveFont(9f));
+				dot.setFont(dot.getFont().deriveFont(8f));
 				west.add(dot, BorderLayout.WEST);
+			} else {
+				west.add(javax.swing.Box.createHorizontalStrut(8), BorderLayout.WEST);
 			}
 			west.add(avatar, BorderLayout.CENTER);
 			row.add(west, BorderLayout.WEST);
 
-			JPanel text = new JPanel(new BorderLayout(0, 2));
+			JPanel text = new JPanel(new BorderLayout(0, 1));
 			text.setOpaque(false);
-			JPanel top = new JPanel(new BorderLayout());
+			JPanel top = new JPanel(new BorderLayout(4, 0));
 			top.setOpaque(false);
 			JLabel senderLabel = new JLabel(sender);
 			senderLabel.setForeground(UiTokens.TEXT);
+			senderLabel.setFont(senderLabel.getFont().deriveFont(message.isRead() ? Font.PLAIN : Font.BOLD, 12.5f));
 			JLabel dateLabel = new JLabel(MailDates.format(message.getReceivedDate()));
-			dateLabel.setFont(UiTokens.secondaryFont(dateLabel.getFont()));
+			dateLabel.setFont(UiTokens.compactFont(dateLabel.getFont()));
 			dateLabel.setForeground(UiTokens.TEXT_SECONDARY);
 			JLabel subjectLabel = new JLabel(subject);
 			subjectLabel.setForeground(UiTokens.TEXT);
+			subjectLabel.setFont(subjectLabel.getFont().deriveFont(message.isRead() ? Font.PLAIN : Font.BOLD, 12.5f));
 			JLabel previewLabel = new JLabel(preview);
-			previewLabel.setFont(UiTokens.secondaryFont(previewLabel.getFont()));
-			previewLabel.setForeground(UiTokens.TEXT_SECONDARY);
-			if (!message.isRead()) {
-				senderLabel.setFont(senderLabel.getFont().deriveFont(Font.BOLD));
-				subjectLabel.setFont(subjectLabel.getFont().deriveFont(Font.BOLD));
-			}
+			previewLabel.setFont(UiTokens.compactFont(previewLabel.getFont()));
+			previewLabel.setForeground(UiTokens.PREVIEW_MUTED);
 			if (selected) {
 				senderLabel.setForeground(UiTokens.SELECTED_FG);
 				subjectLabel.setForeground(UiTokens.SELECTED_FG);
 			}
-			String marks = "";
+			StringBuilder trailing = new StringBuilder();
 			if (message.isFlagged()) {
-				marks += "\u2605 ";
+				trailing.append("\u2605 ");
 			}
 			if (attachments) {
-				marks += "\u2709";
+				trailing.append("\u2709 ");
 			}
-			if (!marks.isEmpty()) {
-				JLabel mark = new JLabel(marks.trim());
-				mark.setForeground(message.isFlagged() ? UiTokens.STAR : UiTokens.TEXT_SECONDARY);
-				dateLabel.setText(marks.trim() + "  " + dateLabel.getText());
+			trailing.append(MailDates.format(message.getReceivedDate()));
+			dateLabel.setText(trailing.toString().trim());
+			if (message.isFlagged()) {
+				dateLabel.setForeground(UiTokens.STAR);
 			}
 			top.add(senderLabel, BorderLayout.CENTER);
 			top.add(dateLabel, BorderLayout.EAST);

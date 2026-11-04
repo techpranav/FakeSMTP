@@ -395,4 +395,44 @@
 			<url>LICENSE.txt</url>
 		</license>
 	</licenses>
+
+	<!--
+	  ULM zero-code licensing (optional profile).
+	  Prerequisites: Java 17+ to *run* the packaged distribution (bytecode stays Java 8).
+	  Place public keys at src/main/ulm/trusted-keys.properties (never private keys), then:
+	    mvn -Pulm package
+	  Output: target/ulm-dist/ with MailBox.jar, ulm agent, and run.bat / run.sh.
+	-->
+	<profiles>
+		<profile>
+			<id>ulm</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>com.ulm</groupId>
+						<artifactId>license-maven-plugin</artifactId>
+						<version>1.1.0</version>
+						<configuration>
+							<productCode>MAILBOX</productCode>
+							<trustedKeysFile>${project.basedir}/src/main/ulm/trusted-keys.properties</trustedKeysFile>
+							<applicationJar>${project.build.directory}/${project.build.finalName}.jar</applicationJar>
+							<outputDirectory>${project.build.directory}/ulm-dist</outputDirectory>
+							<agentJar>${ulm.agent.jar}</agentJar>
+							<force>true</force>
+						</configuration>
+						<executions>
+							<execution>
+								<id>ulm-package</id>
+								<phase>package</phase>
+								<goals>
+									<goal>integrate</goal>
+									<goal>package</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>
