@@ -1,5 +1,6 @@
 package com.nilhcem.fakesmtp.gui;
 
+import java.awt.Frame;
 import java.awt.Image;
 import java.awt.Toolkit;
 import java.io.File;
@@ -78,15 +79,26 @@ public final class MainPanel {
 		windowRef.set(frame);
 		Image icon = Toolkit.getDefaultToolkit().getImage(
 				getClass().getResource(Configuration.INSTANCE.get("application.icon.path")));
-		NewMailNotifier notifier = new NewMailNotifier(new SettingsPreferences(windowRef),
-				new DesktopNotificationBackend(toast, icon));
+		DesktopNotificationBackend notificationBackend = new DesktopNotificationBackend(toast, icon);
+		notificationBackend.setBringToFront(() -> {
+			frame.setVisible(true);
+			frame.setExtendedState(frame.getExtendedState() & ~Frame.ICONIFIED);
+			frame.toFront();
+			frame.requestFocus();
+		});
+		NewMailNotifier notifier = new NewMailNotifier(new SettingsPreferences(windowRef), notificationBackend);
 		bridge = new InboxBridge(inboxModel, notifier);
 		LegacyControls controls = new LegacyControls(portText, startServerBtn, saveMsgTextField,
 				nbReceivedLabel, clearAll, logsPane);
-		inboxView = new InboxView(controls, inboxModel, bridge, toast, windowRef);
+		inboxView = new InboxView(controls, inboxModel, bridge, toast, windowRef, () ->
+				notificationBackend.show("FakeSMTP", "Desktop notifications are working.\nNew mail will appear here.", "test"));
 		toast.setHandler(messageId -> {
 			frame.setVisible(true);
-			inboxView.reveal(messageId);
+			frame.setExtendedState(frame.getExtendedState() & ~Frame.ICONIFIED);
+			frame.toFront();
+			if (!"test".equals(messageId)) {
+				inboxView.reveal(messageId);
+			}
 		});
 		assignLabelsToFields();
 		addObservers(menu);

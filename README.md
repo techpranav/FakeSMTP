@@ -1,180 +1,203 @@
 FakeSMTP
 ========
 
-FakeSMTP is a Free Fake SMTP Server with GUI for testing emails in applications easily.
-It is written in Java.
+FakeSMTP is a free fake SMTP server with a modern inbox GUI for testing email in applications.
+It is written in Java and uses SubEthaSMTP.
 
-<img src="http://nilhcem.github.io/FakeSMTP/images/screenshot_mac.png" width="664" height="463" />
+Configure your application to use `localhost` (default port **25**) as the SMTP server. Every message is intercepted, saved as `.eml`, and shown in the inbox with HTML rendering, search, and desktop notifications.
 
-Configure your application to use `localhost` as your SMTP server, and all
-emails will be intercepted and displayed in this software.
-
-FakeSMTP uses SubEthaSMTP: an easy-to-use server-side SMTP library for Java.
-
-FakeSMTP is free to use for commercial and non-commercial projects and the
-source code is provided.
-
-It is licensed under the very free BSD or GPL license, whichever you prefer.
+Licensed under BSD or GPL, whichever you prefer.
 
 
 Requirements
 ------------
 
-You need Java 8 or newer installed on your machine. The jar is compiled for Java 8, so it also runs on Java 11, 17, and 21.
+- **Java 8 or newer** to run the jar (also works on Java 11, 17, and 21)
+- **JDK 8+ and Maven 3.9+** to build from source
 
-If you are on a "Unix-like" machine (Mac, GNU/Linux, BSD...), you may have
-to be "root" to start the port `25`, otherwise, try another port >= `1024`.
-
-
-Usage
------
-
-The fakeSMTP.jar is auto-executable.
-If your desktop environment supports it, you can directly double click
-on the .jar file.
-Otherwise, run the following command:
-
-    java -jar fakeSMTP-VERSION.jar
-
-If you want to specify the directory where emails will be saved when starting the application, you can use the `-o` argument:
-
-    java -jar fakeSMTP-VERSION.jar -o output_directory_name
-    java -jar fakeSMTP-VERSION.jar --output-dir output_directory_name
-
-If you want to autostart the SMTP server at launch, you can use the `-s` argument:
-
-    java -jar fakeSMTP-VERSION.jar -s
-    java -jar fakeSMTP-VERSION.jar --start-server
-
-If you want to autostart the SMTP server without a GUI (background) on a different port and bound to the loopback address:
-
-    java -jar fakeSMTP-VERSION.jar -s -b -p 2525 -a 127.0.0.1
-    java -jar fakeSMTP-VERSION.jar --start-server --background --port 2525 --bind-address 127.0.0.1
-
-If you don't need to save emails on the filesystem (to improve the overall performances), you can use the `-m` (memory mode) argument:
-
-    java -jar fakeSMTP-VERSION.jar -m
-
-To see all the available options (relay domains, custom eml-viewer...):
-
-    java -jar fakeSMTP-VERSION.jar --help
+On Unix-like systems you may need root (or another port ≥ 1024) to bind port 25.
 
 
-Inbox
------
-
-The window is a mail client: inbox, unread mail, search, and a reading pane that lays out HTML (tables, inline CSS, `cid:` images, and SVG charts). Plain text, headers, and the raw MIME message are one click away. Remote images and JavaScript stay blocked. A new message raises a desktop notification where the operating system supports one, and an in-window notice otherwise.
-
-Settings (theme, notifications, sort, window size) are stored in `~/.fakeSMTP-ui.properties`. The SMTP port and output directory stay in `~/.fakeSMTP.properties`.
-
-Background mode (`-s -b`) still does not open the window.
-
-See `docs/FEATURES.md` for what the HTML view can and cannot render.
-
-
-Alternatives
-------------
-
-FakeSMTP was created because we couldn't find any free (as in freedom) and
-cross-platform SMTP server with GUI for testing emails in applications or websites.
-Listed below are some greats alternatives to Fake SMTP:
-
-
-**[SMTP4dev](http://smtp4dev.codeplex.com/)**
-
-* Nice features;
-* Open source;
-* Windows only (written in .Net).
-
-
-**[DevNull SMTP](http://www.aboutmyip.com/AboutMyXApp/DevNullSmtp.jsp)**
-
-* Lightweight;
-* Closed source;
-* Cross-Platform (written in Java 1.4).
-
-
-Building it
+Screenshots
 -----------
 
-You need JDK 8 or newer and Maven.
-Once installed, go to project directory and run the following command:
+Empty inbox after starting the server on port 25:
 
-    mvn package -Dmaven.test.skip
+![FakeSMTP empty inbox](docs/images/screenshot-inbox-empty.png)
 
-This command will create an executable jar on the target folder.
+HTML email rendered in the reading pane (tables, links, and charts):
 
-We recommend you not to skip unit tests.
+![Rendered overdue-approval email](docs/images/overdue-approval.png)
 
-Once you know how to configure unit tests for this project, stop skipping them.
+Desktop notification (in-window toast; tray balloon is also used when the OS supports it):
 
-
-Running integration tests
--------------------------
-
-To run integration tests, you will first need to launch the application
-and start the server on port `2525`.
-
-    java -jar fakeSMTP-VERSION.jar -p 2525 -s
-
-You can then run the following command:
-
-    mvn integration-test
+![New mail notification toast](docs/images/screenshot-notification.png)
 
 
-Change the default port for unit/integration tests
---------------------------------------------------
+Build the jar
+-------------
 
-You need to modify the following file:
-`src/test/java/com/nilhcem/fakesmtp/core/test/TestConfig.java`.
+From the project root:
 
-Please note that it is better to have two different ports for unit and integrations tests, to avoid any port binding exception while running Maven's `integration-test` goal.
+```bash
+mvn clean package
+```
+
+That runs unit tests, builds the executable fat jar, and (with `mvn verify`) also runs integration tests.
+
+Output file:
+
+```text
+target/fakeSMTP-2.1-SNAPSHOT.jar
+```
+
+Skip tests only if you must:
+
+```bash
+mvn clean package -DskipTests
+```
+
+Recommended (full check):
+
+```bash
+mvn clean verify
+```
+
+
+Download the jar
+----------------
+
+### From a local build
+
+Copy the file Maven produced:
+
+```text
+target/fakeSMTP-2.1-SNAPSHOT.jar
+```
+
+### From GitHub Releases / Actions (when published)
+
+1. Open the repository on GitHub.
+2. Download `fakeSMTP-2.1-SNAPSHOT.jar` (or the release asset with the same name).
+3. Keep Java 8+ installed on the machine that will run it.
+
+### From this branch (developers)
+
+```bash
+git clone https://github.com/techpranav/FakeSMTP.git
+cd FakeSMTP
+git checkout feature/modern-ui
+mvn clean package
+```
+
+
+Run the jar
+-----------
+
+Double-click the jar if your desktop supports it, or:
+
+```bash
+java -jar fakeSMTP-2.1-SNAPSHOT.jar
+```
+
+Start listening immediately on port 25:
+
+```bash
+java -jar fakeSMTP-2.1-SNAPSHOT.jar -s
+```
+
+Custom port and output folder:
+
+```bash
+java -jar fakeSMTP-2.1-SNAPSHOT.jar -s -p 2525 -o received-emails
+```
+
+Background mode (no GUI — SMTP only):
+
+```bash
+java -jar fakeSMTP-2.1-SNAPSHOT.jar -s -b -p 2525 -a 127.0.0.1 -o received-emails
+```
+
+Memory mode (do not write `.eml` files):
+
+```bash
+java -jar fakeSMTP-2.1-SNAPSHOT.jar -s -m
+```
+
+Help:
+
+```bash
+java -jar fakeSMTP-2.1-SNAPSHOT.jar --help
+```
+
+Point your application SMTP host to `localhost` and the same port shown in the header (use **Copy host:port** to copy `localhost:25`).
+
+
+Inbox features
+--------------
+
+- Mail-client layout: Inbox, Unread, All Emails, Attachments, SMTP log
+- Search, newest/oldest sort, refresh (`F5`)
+- HTML / plain text / headers / raw MIME views
+- Safe HTML: no JavaScript, remote images blocked until you allow them
+- Tables, links, CID images, SVG charts (rasterized)
+- Desktop notifications (tray + in-window toast) with optional sound
+- **Test desktop notification** in Settings
+- Copy message, open emails folder, mark all read (`Ctrl+Shift+A`), delete (`Delete`)
+- Light / dark theme
+
+Settings live in `~/.fakeSMTP-ui.properties`. Port and output directory stay in `~/.fakeSMTP.properties`.
+
+See [`docs/FEATURES.md`](docs/FEATURES.md), [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/TESTING.md`](docs/TESTING.md), and [`docs/BUILD_AND_RELEASE.md`](docs/BUILD_AND_RELEASE.md).
+
+
+Notifications
+-------------
+
+Notifications are **on by default**.
+
+1. Toggle **Notifications** in the header, or open **Settings**.
+2. Click **Test desktop notification** to verify tray / toast on your machine.
+3. When a real email arrives, FakeSMTP shows an in-window toast and, when available, a system tray balloon (or `notify-send` on Linux).
+4. Click the toast or tray icon to focus FakeSMTP and open that message.
+
+Optional: include a short preview, play a beep, or notify even while the window is focused.
+
+
+Integration tests
+-----------------
+
+```bash
+mvn verify
+```
+
+`SendEmailsIT` starts an embedded server on port 2525 when needed.
+`PackagedJarIT` launches the built jar in background mode and checks that mail is saved.
 
 
 Usage on Docker
 ---------------
 
-* Run distributed version: [Dockerfile](https://github.com/Nilhcem/FakeSMTP/blob/master/Dockerfile)
+Build from source (`src/main/docker/Dockerfile` uses Java 8):
 
-      `docker build -t="mail" github.com/Nilhcem/FakeSMTP`
+```bash
+mvn package docker:build -DskipTests
+docker run -ti -d -p 250:25 --privileged=true -v /home/fakesmtp/mail:/output fakesmtp
+```
 
-      `docker run -ti -p 250:25 --privileged=true -v /mail:/output mail`
-
-
-* Build from source
-
-Get sources from GitHub: [Dockerfile](https://github.com/Nilhcem/FakeSMTP/blob/master/src/main/docker/Dockerfile)
-
-    git clone https://github.com/Nilhcem/FakeSMTP
-    cd FakeSMTP
-
-Build the docker image
-
-    mvn package docker:build -DskipTests
-
-Run the docker image
-
-    docker run -ti -d fakesmtp
-
-Configure container
-
-* Map the SMTP port 25 to host:
-
-    `-p 250:25`
-
-* Map volume for received mails:
-
-    `--privileged=true  -v /mail-data:/output`
-
-Full command
-
-* Foward fakesmtp:25 to host port 250,
-* mount host folder /home/fakesmtp/mail as container folder /output
-
-    `docker run -ti -d -p 250:25 --privileged=true -v /home/fakesmtp/mail:/output fakesmtp`
+The root `Dockerfile` still downloads the upstream 2.0 zip.
 
 
-Contact me
-----------
+Alternatives
+------------
 
-Use my github's nickname (at) gmail (dot) com
+**[SMTP4dev](http://smtp4dev.codeplex.com/)** — open source, Windows only (.NET).
+
+**[DevNull SMTP](http://www.aboutmyip.com/AboutMyXApp/DevNullSmtp.jsp)** — lightweight, closed source, Java 1.4.
+
+
+Contact
+-------
+
+Use the GitHub nickname (at) gmail (dot) com for the original author.
+For this fork, open issues on the repository.

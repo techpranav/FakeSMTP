@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.nilhcem.fakesmtp.core.ArgsHandler;
+import com.nilhcem.fakesmtp.core.Texts;
 import com.nilhcem.fakesmtp.core.UISettings;
 import com.nilhcem.fakesmtp.mail.AttachmentFiles;
 import com.nilhcem.fakesmtp.mail.HtmlPreprocessor;
@@ -58,14 +59,17 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 	private final MessageReaderPanel reader;
 	private final MessageListPanel list;
 	private final JPanel centerCards = new JPanel(new CardLayout());
+	private final Runnable testNotification;
 
-	public InboxView(LegacyControls controls, InboxModel model, InboxBridge bridge, InAppToast toast, WindowRef window) {
+	public InboxView(LegacyControls controls, InboxModel model, InboxBridge bridge, InAppToast toast, WindowRef window,
+			Runnable testNotification) {
 		super(new BorderLayout());
 		this.controls = controls;
 		this.model = model;
 		this.bridge = bridge;
 		this.toast = toast;
 		this.window = window;
+		this.testNotification = testNotification;
 		model.setNewestFirst(UISettings.INSTANCE.getBoolean(UISettings.SORT_NEWEST_FIRST));
 		header = new InboxHeader(controls);
 		sidebar = new InboxSidebar(model);
@@ -73,6 +77,8 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 		list = new MessageListPanel(model, reader);
 		header.setSettingsAction(this::openSettings);
 		header.setThemeChanged(this::changeTheme);
+		header.setCopyConnectionAction(this::copyConnection);
+		installShortcuts();
 		sidebar.setLogSelected(this::showLog);
 		sidebar.setFolderSelected(this::showMail);
 		list.setRefreshAction(bridge::refreshSaved);
@@ -205,6 +211,33 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 		thread.start();
 	}
 
+	@Override
+	public void openEmailsFolder() {
+		String path = UIModel.INSTANCE.getSavePath();
+		if (Texts.isBlank(path)) {
+			JOptionPane.showMessageDialog(this, InboxText.get("reader.folder.missing"));
+			return;
+		}
+		File directory = new File(path);
+		if (!directory.isDirectory()) {
+			directory.mkdirs();
+		}
+		try {
+			if (java.awt.Desktop.isDesktopSupported()) {
+				java.awt.Desktop.getDesktop().open(directory);
+				return;
+			}
+		} catch (IOException e) {
+			LOGGER.warn("Could not open the emails folder", e);
+		}
+		JOptionPane.showMessageDialog(this, InboxText.get("reader.folder.failed"));
+	}
+
+	@Override
+	public void markAllRead() {
+		model.markAllRead();
+	}
+
 	private JPanel statusBar() {
 		JPanel bar = new JPanel(new MigLayout("insets 6 12 6 12", "[][grow,fill]push[][]", "[]"));
 		bar.add(new JLabel(InboxText.get("status.saving")));
@@ -232,7 +265,7 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 	}
 
 	private void openSettings() {
-		if (!SettingsDialog.show(this)) {
+		if (!SettingsDialog.show(this, testNotification)) {
 			return;
 		}
 		header.refreshNotificationSwitch();
@@ -244,6 +277,46 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 			thread.setDaemon(true);
 			thread.start();
 		}
+	}
+
+	private void copyConnection() {
+		String port = controls.getPort().get().getText();
+		if (Texts.isBlank(port)) {
+			port = "25";
+		}
+		String value = "localhost:" + port.trim();
+		java.awt.Toolkit.getDefaultToolkit().getSystemClipboard()
+				.setContents(new java.awt.datatransfer.StringSelection(value), null);
+		toast.showToast(InboxText.get("notify.copied.title"), InboxText.format("notify.copied.connection", value), "info");
+	}
+
+	private void installShortcuts() {
+		javax.swing.InputMap inputs = getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+		javax.swing.ActionMap actions = getActionMap();
+		inputs.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F5, 0), "refresh");
+		actions.put("refresh", new javax.swing.AbstractAction() {
+			@Override
+			public void actionPerformed(java.awt.event.ActionEvent event) {
+				bridge.refreshSaved();
+			}
+		});
+		inputs.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_DELETE, 0), "delete");
+		actions.put("delete", new javax.swing.AbstractAction() {
+			@Override
+			public void actionPerformed(java.awt.event.ActionEvent event) {
+				if (model.getSelected() != null) {
+					deleteMessage(model.getSelected());
+				}
+			}
+		});
+		inputs.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_A, java.awt.event.InputEvent.CTRL_DOWN_MASK
+				| java.awt.event.InputEvent.SHIFT_DOWN_MASK), "markAllRead");
+		actions.put("markAllRead", new javax.swing.AbstractAction() {
+			@Override
+			public void actionPerformed(java.awt.event.ActionEvent event) {
+				model.markAllRead();
+			}
+		});
 	}
 
 	private void changeTheme() {

@@ -25,9 +25,16 @@ The overdue-approval sample renders like this:
 
 ## Notifications
 
-On by default. A new message shows the sender, subject, and a short preview (the preview can be hidden). Windows and macOS use the system tray. Linux uses the tray or `notify-send` when `notify-send` exists. Otherwise a notice appears inside the window. Clicking a tray balloon or the in-window notice focuses FakeSMTP and selects that message. A sound is optional and off by default.
+On by default. A new message shows the sender, subject, and a short preview (the preview can be hidden). FakeSMTP always shows an in-window toast, and also uses the system tray balloon on Windows/macOS when available (or `notify-send` on Linux). Clicking the toast or tray icon focuses FakeSMTP and opens that message. Settings include **Test desktop notification**. A sound is optional and off by default.
 
 Notifications are skipped when the window is focused unless **Notify even when FakeSMTP is focused** is on. A notification failure does not affect delivery.
+
+## Extra tools
+
+- **Copy host:port** copies `localhost:25` (or the current port) for app SMTP config.
+- **Copy** copies headers and body text from the selected message.
+- **Open folder** opens the directory where `.eml` files are saved.
+- **Mark all read**, `F5` refresh, and `Delete` remove the selected message after confirm.
 
 ## Themes and settings
 

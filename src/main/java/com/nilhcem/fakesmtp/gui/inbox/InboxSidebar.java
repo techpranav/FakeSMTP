@@ -1,11 +1,14 @@
 package com.nilhcem.fakesmtp.gui.inbox;
 
+import java.awt.Color;
 import java.awt.Font;
 
+import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.JPanel;
 import javax.swing.JToggleButton;
 
+import com.formdev.flatlaf.FlatClientProperties;
 import com.nilhcem.fakesmtp.model.InboxFolder;
 import com.nilhcem.fakesmtp.model.InboxModel;
 
@@ -18,6 +21,9 @@ import net.miginfocom.swing.MigLayout;
  */
 public final class InboxSidebar extends JPanel {
 
+	private static final Color SIDEBAR_BG = new Color(0xF8F9FA);
+	private static final Color DIVIDER = new Color(0xE0E3E7);
+
 	private final InboxModel model;
 	private final JToggleButton inbox = item("folder.inbox");
 	private final JToggleButton unread = item("folder.unread");
@@ -29,8 +35,11 @@ public final class InboxSidebar extends JPanel {
 	private boolean updating;
 
 	public InboxSidebar(InboxModel model) {
-		super(new MigLayout("insets 12, wrap 1", "[grow,fill]", "[]4[]4[]4[]12[]"));
+		super(new MigLayout("insets 14 10 14 10, wrap 1, gapy 4", "[grow,fill]", "[][][][]16[]"));
 		this.model = model;
+		setOpaque(true);
+		setBackground(SIDEBAR_BG);
+		setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, DIVIDER));
 		ButtonGroup group = new ButtonGroup();
 		group.add(inbox);
 		group.add(unread);
@@ -91,10 +100,12 @@ public final class InboxSidebar extends JPanel {
 		JToggleButton button = new JToggleButton(InboxText.get(key));
 		button.setHorizontalAlignment(JToggleButton.LEFT);
 		button.setFont(button.getFont().deriveFont(Font.PLAIN, button.getFont().getSize() + 1f));
+		button.putClientProperty(FlatClientProperties.STYLE,
+				"arc: 8; focusWidth: 0; selectedBackground: #E8F0FE; selectedForeground: #174EA6");
 		return button;
 	}
 
 	private static String label(String key, int count) {
-		return InboxText.get(key) + "    " + count;
+		return InboxText.get(key) + "   " + count;
 	}
 }

@@ -1,6 +1,7 @@
 package com.nilhcem.fakesmtp.notification;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Font;
 
@@ -10,13 +11,13 @@ import javax.swing.JPanel;
 import javax.swing.Timer;
 
 /**
- * A small panel inside the window, used when the desktop cannot show a notification.
+ * A notice inside the window shown for every new email (and as a fallback when the tray fails).
  *
  * @since 2.1
  */
 public final class InAppToast extends JPanel {
 
-	private static final int HIDE_AFTER_MS = 8000;
+	private static final int HIDE_AFTER_MS = 10000;
 	private static final int PADDING = 10;
 
 	private final JLabel titleLabel = new JLabel(" ");
@@ -28,9 +29,15 @@ public final class InAppToast extends JPanel {
 	public InAppToast() {
 		super(new BorderLayout(PADDING, 2));
 		setVisible(false);
+		setOpaque(true);
+		setBackground(new Color(0xE8F0FE));
 		setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-		setBorder(BorderFactory.createEmptyBorder(PADDING, PADDING, PADDING, PADDING));
+		setBorder(BorderFactory.createCompoundBorder(
+				BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(0xAECBFA)),
+				BorderFactory.createEmptyBorder(PADDING, PADDING, PADDING, PADDING)));
 		titleLabel.setFont(titleLabel.getFont().deriveFont(Font.BOLD));
+		titleLabel.setForeground(new Color(0x174EA6));
+		bodyLabel.setForeground(new Color(0x202124));
 		add(titleLabel, BorderLayout.NORTH);
 		add(bodyLabel, BorderLayout.CENTER);
 		timer = new Timer(HIDE_AFTER_MS, event -> setVisible(false));
@@ -59,6 +66,8 @@ public final class InAppToast extends JPanel {
 		bodyLabel.setText(toHtml(body));
 		messageId = id;
 		setVisible(true);
+		revalidate();
+		repaint();
 		timer.restart();
 	}
 

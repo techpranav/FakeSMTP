@@ -1,12 +1,12 @@
 package com.nilhcem.fakesmtp.gui.inbox;
 
-import com.nilhcem.fakesmtp.core.Texts;
-
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.GridBagLayout;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
@@ -18,9 +18,11 @@ import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
+import javax.swing.ListCellRenderer;
 import javax.swing.ListSelectionModel;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.nilhcem.fakesmtp.core.Texts;
 import com.nilhcem.fakesmtp.mail.ParsedEmail;
 import com.nilhcem.fakesmtp.model.InboxFolder;
 import com.nilhcem.fakesmtp.model.InboxMessage;
@@ -33,7 +35,13 @@ import com.nilhcem.fakesmtp.model.InboxModel;
  */
 public final class MessageListPanel extends JPanel {
 
-	private static final int ROW_HEIGHT = 76;
+	private static final int ROW_HEIGHT = 88;
+	private static final Color UNREAD_DOT = new Color(0x1A73E8);
+	private static final Color PREVIEW_COLOR = new Color(0x5F6368);
+	private static final Color DATE_COLOR = new Color(0x80868B);
+	private static final Color DIVIDER = new Color(0xE8EAED);
+	private static final Color SELECTED_BG = new Color(0xE8F0FE);
+	private static final Color SELECTED_FG = new Color(0x174EA6);
 
 	private final InboxModel model;
 	private final DefaultListModel<InboxMessage> items = new DefaultListModel<InboxMessage>();
@@ -49,8 +57,9 @@ public final class MessageListPanel extends JPanel {
 		super(new BorderLayout(0, 8));
 		this.model = model;
 		this.reader = reader;
-		setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 4));
+		setBorder(BorderFactory.createEmptyBorder(10, 10, 8, 6));
 		search.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, InboxText.get("list.search"));
+		search.putClientProperty(FlatClientProperties.STYLE, "arc: 8");
 		search.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
 			@Override
 			public void insertUpdate(javax.swing.event.DocumentEvent event) {
@@ -81,14 +90,17 @@ public final class MessageListPanel extends JPanel {
 			}
 		});
 		JPanel tools = new JPanel(new BorderLayout(6, 6));
+		tools.setOpaque(false);
 		tools.add(search, BorderLayout.CENTER);
 		JPanel toolsRow = new JPanel(new BorderLayout(6, 0));
+		toolsRow.setOpaque(false);
 		toolsRow.add(sort, BorderLayout.CENTER);
 		toolsRow.add(refresh, BorderLayout.EAST);
 		tools.add(toolsRow, BorderLayout.SOUTH);
 		list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		list.setFixedCellHeight(ROW_HEIGHT);
 		list.setCellRenderer(new RowRenderer());
+		list.setBorder(null);
 		list.addListSelectionListener(event -> {
 			if (!event.getValueIsAdjusting()) {
 				onSelection();
@@ -96,10 +108,10 @@ public final class MessageListPanel extends JPanel {
 		});
 		JScrollPane listScroll = new JScrollPane(list);
 		listScroll.getVerticalScrollBar().setUnitIncrement(16);
-		listScroll.setBorder(null);
+		listScroll.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, DIVIDER));
 		cards.add(listScroll, "list");
 		cards.add(empty, "empty");
-		setMinimumSize(new Dimension(220, 160));
+		setMinimumSize(new Dimension(240, 160));
 		add(tools, BorderLayout.NORTH);
 		add(cards, BorderLayout.CENTER);
 		reload();
@@ -189,13 +201,39 @@ public final class MessageListPanel extends JPanel {
 	}
 
 	/**
-	 * One inbox row: sender, subject, preview, and time.
+	 * One inbox row with sender, time, subject, and preview.
 	 */
-	private static final class RowRenderer extends DefaultListCellRenderer {
+	private static final class RowRenderer implements ListCellRenderer<InboxMessage> {
+
+		private final DefaultListCellRenderer probe = new DefaultListCellRenderer();
+
 		@Override
-		public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean selected, boolean focus) {
-			JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, selected, focus);
-			InboxMessage message = (InboxMessage) value;
+		public Component getListCellRendererComponent(JList<? extends InboxMessage> list, InboxMessage message,
+				int index, boolean selected, boolean focus) {
+			probe.getListCellRendererComponent(list, message, index, selected, focus);
+
+			JPanel row = new JPanel(new BorderLayout(8, 0));
+			row.setBorder(BorderFactory.createCompoundBorder(
+					BorderFactory.createMatteBorder(0, 0, 1, 0, DIVIDER),
+					BorderFactory.createEmptyBorder(10, 10, 10, 10)));
+			if (selected) {
+				row.setBackground(SELECTED_BG);
+			} else if (index % 2 == 0) {
+				row.setBackground(Color.WHITE);
+			} else {
+				row.setBackground(new Color(0xFAFBFC));
+			}
+			row.setOpaque(true);
+
+			JPanel unreadMark = new JPanel(new GridBagLayout());
+			unreadMark.setOpaque(false);
+			unreadMark.setPreferredSize(new Dimension(10, 10));
+			JLabel dot = new JLabel(message.isRead() ? " " : "\u25CF");
+			dot.setForeground(UNREAD_DOT);
+			dot.setFont(dot.getFont().deriveFont(10f));
+			unreadMark.add(dot);
+			row.add(unreadMark, BorderLayout.WEST);
+
 			ParsedEmail parsed = message.getParsed();
 			String sender = InboxText.get("reader.unknown");
 			String subject = InboxText.get("reader.nosubject");
@@ -203,34 +241,56 @@ public final class MessageListPanel extends JPanel {
 			String clip = "";
 			if (parsed != null) {
 				if (!Texts.isBlank(parsed.senderLine())) {
-					sender = parsed.senderLine();
+					sender = shorten(parsed.senderLine(), 42);
 				}
 				if (!Texts.isBlank(parsed.getSubject())) {
-					subject = parsed.getSubject();
+					subject = shorten(parsed.getSubject(), 48);
 				}
-				preview = parsed.getPreview();
+				preview = shorten(parsed.getPreview(), 70);
 				if (parsed.hasAttachments()) {
-					clip = "  \u2709";
+					clip = " \u2709";
 				}
 			}
-			int style = Font.PLAIN;
+
+			JPanel text = new JPanel(new BorderLayout(0, 2));
+			text.setOpaque(false);
+			JPanel top = new JPanel(new BorderLayout());
+			top.setOpaque(false);
+			JLabel senderLabel = new JLabel(sender + clip);
+			JLabel dateLabel = new JLabel(MailDates.format(message.getReceivedDate()));
+			dateLabel.setFont(dateLabel.getFont().deriveFont(11f));
+			dateLabel.setForeground(DATE_COLOR);
+			JLabel subjectLabel = new JLabel(subject);
+			JLabel previewLabel = new JLabel(preview);
+			previewLabel.setFont(previewLabel.getFont().deriveFont(11f));
+			previewLabel.setForeground(PREVIEW_COLOR);
 			if (!message.isRead()) {
-				style = Font.BOLD;
+				senderLabel.setFont(senderLabel.getFont().deriveFont(Font.BOLD));
+				subjectLabel.setFont(subjectLabel.getFont().deriveFont(Font.BOLD));
 			}
-			label.setFont(label.getFont().deriveFont(style));
-			label.setText("<html><div style='width:300px;padding:2px 4px'>"
-					+ "<b>" + escape(sender) + "</b>" + escape(clip)
-					+ "<span style='float:right'>" + escape(MailDates.format(message.getReceivedDate())) + "</span><br>"
-					+ escape(subject) + "<br><span>" + escape(preview) + "</span></div></html>");
-			label.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
-			return label;
+			if (selected) {
+				senderLabel.setForeground(SELECTED_FG);
+				subjectLabel.setForeground(SELECTED_FG);
+				previewLabel.setForeground(SELECTED_FG);
+				dateLabel.setForeground(SELECTED_FG);
+			}
+			top.add(senderLabel, BorderLayout.CENTER);
+			top.add(dateLabel, BorderLayout.EAST);
+			text.add(top, BorderLayout.NORTH);
+			text.add(subjectLabel, BorderLayout.CENTER);
+			text.add(previewLabel, BorderLayout.SOUTH);
+			row.add(text, BorderLayout.CENTER);
+			return row;
 		}
 
-		private static String escape(String value) {
+		private static String shorten(String value, int max) {
 			if (value == null) {
 				return "";
 			}
-			return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+			if (value.length() <= max) {
+				return value;
+			}
+			return value.substring(0, max - 1) + "\u2026";
 		}
 	}
 }

@@ -16,4 +16,8 @@ public interface MessageActions {
 	void openStoredFile(InboxMessage message);
 
 	void loadExternalImages(InboxMessage message);
+
+	void openEmailsFolder();
+
+	void markAllRead();
 }

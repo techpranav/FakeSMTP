@@ -95,6 +95,19 @@ public final class InboxModel {
 		return message;
 	}
 
+	public synchronized void markAllRead() {
+		boolean changed = false;
+		for (InboxMessage message : messages) {
+			if (!message.isRead()) {
+				message.setRead(true);
+				changed = true;
+			}
+		}
+		if (changed) {
+			fire();
+		}
+	}
+
 	public synchronized void setRead(String id, boolean read) {
 		InboxMessage message = find(id);
 		if (message == null || message.isRead() == read) {

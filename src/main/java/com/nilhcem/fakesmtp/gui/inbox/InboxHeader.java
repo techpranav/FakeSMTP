@@ -40,19 +40,31 @@ public final class InboxHeader extends JPanel {
 	});
 	private Runnable settingsAction;
 	private Runnable themeChanged;
+	private Runnable copyConnectionAction;
 
 	public InboxHeader(LegacyControls controls) {
-		super(new MigLayout("insets 10 14 10 14", "[]12[]12[]8[]8[]push[]8[]8[]", "[]"));
+		super(new MigLayout("insets 10 14 10 14", "[]12[]12[]8[]8[]8[]push[]8[]8[]8[]", "[]"));
 		this.controls = controls;
+		setOpaque(true);
+		setBackground(new Color(0xFFFFFF));
+		setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(0xE0E3E7)));
 		JLabel brand = new JLabel(InboxText.get("header.brand"));
 		brand.setFont(brand.getFont().deriveFont(Font.BOLD, brand.getFont().getSize() + 4f));
 		status.setOpaque(true);
 		status.setBorder(BorderFactory.createEmptyBorder(4, STATUS_PAD, 4, STATUS_PAD));
+		status.putClientProperty("JComponent.roundRect", Boolean.TRUE);
 		controls.getPort().get().setColumns(5);
 		JButton settings = new JButton(InboxText.get("header.settings"));
 		settings.addActionListener(event -> {
 			if (settingsAction != null) {
 				settingsAction.run();
+			}
+		});
+		JButton copyConnection = new JButton(InboxText.get("header.copyConnection"));
+		copyConnection.setToolTipText(InboxText.get("header.copyConnection.tip"));
+		copyConnection.addActionListener(event -> {
+			if (copyConnectionAction != null) {
+				copyConnectionAction.run();
 			}
 		});
 		notifications.setSelected(UISettings.INSTANCE.getBoolean(UISettings.NOTIFICATIONS_ENABLED));
@@ -71,6 +83,7 @@ public final class InboxHeader extends JPanel {
 		add(controls.getPort().get(), "w 72!");
 		add(controls.getServer().get(), "sg server");
 		add(controls.getServer().getStopButton(), "sg server");
+		add(copyConnection);
 		add(notifications);
 		add(theme);
 		add(settings);
@@ -83,6 +96,10 @@ public final class InboxHeader extends JPanel {
 
 	public void setThemeChanged(Runnable themeChanged) {
 		this.themeChanged = themeChanged;
+	}
+
+	public void setCopyConnectionAction(Runnable copyConnectionAction) {
+		this.copyConnectionAction = copyConnectionAction;
 	}
 
 	public boolean isDarkSelected() {

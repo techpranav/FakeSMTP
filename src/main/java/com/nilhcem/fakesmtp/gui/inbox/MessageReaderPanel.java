@@ -1,11 +1,11 @@
 package com.nilhcem.fakesmtp.gui.inbox;
 
-import com.nilhcem.fakesmtp.core.Texts;
-
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Color;
 import java.awt.Desktop;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Image;
 import java.io.ByteArrayInputStream;
@@ -30,6 +30,7 @@ import javax.swing.ScrollPaneConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.nilhcem.fakesmtp.core.Texts;
 import com.nilhcem.fakesmtp.core.UISettings;
 import com.nilhcem.fakesmtp.mail.AttachmentFiles;
 import com.nilhcem.fakesmtp.mail.HeaderField;
@@ -46,17 +47,16 @@ public final class MessageReaderPanel extends JPanel {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(MessageReaderPanel.class);
 	private static final int PREVIEW_MAX = 480;
-	private static final int DETAILS_MAX_HEIGHT = 120;
-	private static final int ATTACHMENTS_MAX_HEIGHT = 120;
+	private static final int ATTACHMENTS_MAX_HEIGHT = 100;
+	private static final Color TOOLBAR_BG = new Color(0xF8F9FA);
+	private static final Color DIVIDER = new Color(0xE0E3E7);
 
 	private final MessageActions actions;
 	private final CardLayout outer = new CardLayout();
 	private final JPanel outerCards = new JPanel(outer);
 	private final CardLayout bodyCards = new CardLayout();
 	private final JPanel body = new JPanel(bodyCards);
-	private final JLabel subject = new JLabel(" ");
-	private final JTextArea details = new JTextArea();
-	private final JScrollPane detailsScroll;
+	private final MessageHeaderPanel headerPanel = new MessageHeaderPanel();
 	private final JPanel attachmentBox = new JPanel();
 	private final JScrollPane attachmentScroll;
 	private final HtmlEmailView htmlView = new HtmlEmailView();
@@ -73,28 +73,19 @@ public final class MessageReaderPanel extends JPanel {
 	public MessageReaderPanel(MessageActions actions) {
 		super(new BorderLayout());
 		this.actions = actions;
-		setMinimumSize(new Dimension(240, 200));
-		subject.setFont(subject.getFont().deriveFont(Font.BOLD, subject.getFont().getSize() + 6f));
-		details.setEditable(false);
-		details.setLineWrap(true);
-		details.setWrapStyleWord(true);
-		details.setOpaque(false);
-		details.setBorder(BorderFactory.createEmptyBorder(0, 2, 0, 2));
-		detailsScroll = new JScrollPane(details);
-		detailsScroll.setBorder(null);
-		detailsScroll.setOpaque(false);
-		detailsScroll.getViewport().setOpaque(false);
-		detailsScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-		detailsScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
-		detailsScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, DETAILS_MAX_HEIGHT));
-		detailsScroll.setPreferredSize(new Dimension(100, 72));
+		setOpaque(true);
+		setBackground(Color.WHITE);
+		setMinimumSize(new Dimension(280, 200));
 		attachmentBox.setLayout(new BoxLayout(attachmentBox, BoxLayout.Y_AXIS));
+		attachmentBox.setOpaque(false);
 		attachmentScroll = new JScrollPane(attachmentBox);
-		attachmentScroll.setBorder(null);
+		attachmentScroll.setBorder(BorderFactory.createEmptyBorder(6, 0, 0, 0));
+		attachmentScroll.setOpaque(false);
+		attachmentScroll.getViewport().setOpaque(false);
 		attachmentScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 		attachmentScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
 		attachmentScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, ATTACHMENTS_MAX_HEIGHT));
-		attachmentScroll.setPreferredSize(new Dimension(100, 48));
+		attachmentScroll.setPreferredSize(new Dimension(100, 40));
 		htmlView.setLoadImages(() -> {
 			if (current != null) {
 				actions.loadExternalImages(current);
@@ -123,37 +114,69 @@ public final class MessageReaderPanel extends JPanel {
 				actions.openStoredFile(current);
 			}
 		});
-		JPanel tools = new JPanel();
-		tools.setOpaque(false);
-		tools.add(htmlButton);
-		tools.add(textButton);
-		tools.add(headerButton);
-		tools.add(rawButton);
-		tools.add(readButton);
-		tools.add(delete);
-		tools.add(open);
+		JButton copy = new JButton(InboxText.get("reader.copy"));
+		copy.setToolTipText(InboxText.get("reader.copy.tip"));
+		copy.addActionListener(event -> copyCurrent());
+		JButton folder = new JButton(InboxText.get("reader.folder"));
+		folder.addActionListener(event -> actions.openEmailsFolder());
+		JButton markAll = new JButton(InboxText.get("reader.markAllRead"));
+		markAll.addActionListener(event -> actions.markAllRead());
+
+		JPanel viewGroup = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+		viewGroup.setOpaque(false);
+		viewGroup.add(htmlButton);
+		viewGroup.add(textButton);
+		viewGroup.add(headerButton);
+		viewGroup.add(rawButton);
+		JPanel actionGroup = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+		actionGroup.setOpaque(false);
+		actionGroup.add(readButton);
+		actionGroup.add(markAll);
+		actionGroup.add(copy);
+		actionGroup.add(folder);
+		actionGroup.add(open);
+		actionGroup.add(delete);
+		JPanel tools = new JPanel(new BorderLayout());
+		tools.setOpaque(true);
+		tools.setBackground(TOOLBAR_BG);
+		tools.setBorder(BorderFactory.createCompoundBorder(
+				BorderFactory.createMatteBorder(0, 0, 1, 0, DIVIDER),
+				BorderFactory.createEmptyBorder(6, 8, 6, 8)));
+		tools.add(viewGroup, BorderLayout.WEST);
+		tools.add(actionGroup, BorderLayout.EAST);
+
+		body.setOpaque(true);
+		body.setBackground(Color.WHITE);
 		body.setMinimumSize(new Dimension(200, 120));
 		body.add(htmlView, "html");
 		body.add(scroll(plain), "text");
 		body.add(scroll(headers), "headers");
 		body.add(scroll(raw), "raw");
+
 		JPanel heading = new JPanel();
 		heading.setOpaque(false);
 		heading.setLayout(new BoxLayout(heading, BoxLayout.Y_AXIS));
-		subject.setAlignmentX(LEFT_ALIGNMENT);
-		detailsScroll.setAlignmentX(LEFT_ALIGNMENT);
+		headerPanel.setAlignmentX(LEFT_ALIGNMENT);
 		attachmentScroll.setAlignmentX(LEFT_ALIGNMENT);
-		heading.add(subject);
-		heading.add(Box.createVerticalStrut(6));
-		heading.add(detailsScroll);
-		heading.add(Box.createVerticalStrut(6));
+		heading.add(headerPanel);
 		heading.add(attachmentScroll);
-		JPanel top = new JPanel(new BorderLayout(0, 8));
+
+		JPanel top = new JPanel(new BorderLayout(0, 0));
 		top.setOpaque(false);
 		top.add(tools, BorderLayout.NORTH);
 		top.add(heading, BorderLayout.CENTER);
-		JPanel content = new JPanel(new BorderLayout(0, 8));
-		content.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+
+		JPanel content = new JPanel(new BorderLayout(0, 0));
+		content.setOpaque(true);
+		content.setBackground(Color.WHITE);
+		content.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+		JPanel headingPad = new JPanel(new BorderLayout());
+		headingPad.setOpaque(false);
+		headingPad.setBorder(BorderFactory.createEmptyBorder(12, 16, 8, 16));
+		headingPad.add(heading, BorderLayout.CENTER);
+		top.removeAll();
+		top.add(tools, BorderLayout.NORTH);
+		top.add(headingPad, BorderLayout.CENTER);
 		content.add(top, BorderLayout.NORTH);
 		content.add(body, BorderLayout.CENTER);
 		outerCards.add(content, "message");
@@ -175,9 +198,7 @@ public final class MessageReaderPanel extends JPanel {
 		boolean switched = current == null || !current.getId().equals(message.getId());
 		current = message;
 		ParsedEmail parsed = message.getParsed();
-		subject.setText("<html>" + escape(subjectOf(parsed)) + "</html>");
-		details.setText(detailText(parsed, message));
-		details.setCaretPosition(0);
+		headerPanel.showMessage(message);
 		plain.setText(parsed.getPlainText());
 		plain.setCaretPosition(0);
 		headers.setText(headerText(parsed));
@@ -212,6 +233,28 @@ public final class MessageReaderPanel extends JPanel {
 		actions.markRead(current, !current.isRead());
 	}
 
+	private void copyCurrent() {
+		if (current == null || current.getParsed() == null) {
+			return;
+		}
+		ParsedEmail parsed = current.getParsed();
+		StringBuilder text = new StringBuilder();
+		text.append(InboxText.get("reader.from")).append(": ").append(blank(parsed.senderLine(), InboxText.get("reader.unknown"))).append('\n');
+		text.append(InboxText.get("reader.to")).append(": ").append(blank(parsed.recipientLine(), InboxText.get("reader.none"))).append('\n');
+		text.append(InboxText.get("reader.date")).append(": ").append(MailDates.format(current.getReceivedDate())).append('\n');
+		text.append("Subject: ").append(blank(parsed.getSubject(), InboxText.get("reader.nosubject"))).append('\n');
+		text.append('\n');
+		if (!Texts.isBlank(parsed.getPlainText())) {
+			text.append(parsed.getPlainText());
+		} else if (!Texts.isBlank(parsed.getHtml())) {
+			text.append(parsed.getHtml());
+		} else {
+			text.append(current.getRaw());
+		}
+		java.awt.Toolkit.getDefaultToolkit().getSystemClipboard()
+				.setContents(new java.awt.datatransfer.StringSelection(text.toString()), null);
+	}
+
 	private void fillAttachments(ParsedEmail parsed) {
 		attachmentBox.removeAll();
 		if (!parsed.hasAttachments()) {
@@ -220,39 +263,40 @@ public final class MessageReaderPanel extends JPanel {
 			return;
 		}
 		attachmentScroll.setVisible(true);
+		JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
+		row.setOpaque(false);
+		row.setAlignmentX(LEFT_ALIGNMENT);
+		JLabel title = new JLabel(InboxText.get("attach.title"));
+		title.setFont(title.getFont().deriveFont(Font.BOLD));
+		row.add(title);
 		JButton saveAll = new JButton(InboxText.get("attach.saveAll"));
-		saveAll.setAlignmentX(LEFT_ALIGNMENT);
 		saveAll.addActionListener(event -> saveAll(parsed));
-		attachmentBox.add(saveAll);
+		row.add(saveAll);
 		for (MailAttachment attachment : parsed.getAttachments()) {
-			attachmentBox.add(Box.createVerticalStrut(4));
-			attachmentBox.add(attachmentRow(attachment));
+			row.add(attachmentChip(attachment));
 		}
+		attachmentBox.add(row);
 		attachmentBox.revalidate();
 	}
 
-	private JPanel attachmentRow(MailAttachment attachment) {
-		JPanel row = new JPanel(new BorderLayout(8, 0));
-		row.setAlignmentX(LEFT_ALIGNMENT);
-		row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-		String id = "";
-		if (attachment.getContentId() != null) {
-			id = "  " + attachment.getContentId();
-		}
-		row.add(new JLabel(attachment.getFileName() + "  " + attachment.getContentType()
-				+ "  " + attachment.getSize() + " B" + id), BorderLayout.CENTER);
+	private JPanel attachmentChip(MailAttachment attachment) {
+		JPanel chip = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+		chip.setOpaque(true);
+		chip.setBackground(new Color(0xF1F3F4));
+		chip.setBorder(BorderFactory.createCompoundBorder(
+				BorderFactory.createLineBorder(new Color(0xDADCE0)),
+				BorderFactory.createEmptyBorder(2, 6, 2, 4)));
+		chip.add(new JLabel(attachment.getFileName() + " (" + attachment.getSize() + " B)"));
+		JButton preview = new JButton(InboxText.get("attach.preview"));
+		preview.addActionListener(event -> previewAttachment(attachment));
 		JButton save = new JButton(InboxText.get("attach.save"));
 		save.addActionListener(event -> saveOne(attachment));
 		JButton open = new JButton(InboxText.get("attach.open"));
 		open.addActionListener(event -> openAttachment(attachment));
-		JButton preview = new JButton(InboxText.get("attach.preview"));
-		preview.addActionListener(event -> previewAttachment(attachment));
-		JPanel buttons = new JPanel();
-		buttons.add(preview);
-		buttons.add(save);
-		buttons.add(open);
-		row.add(buttons, BorderLayout.EAST);
-		return row;
+		chip.add(preview);
+		chip.add(save);
+		chip.add(open);
+		return chip;
 	}
 
 	private void saveOne(MailAttachment attachment) {
@@ -319,24 +363,6 @@ public final class MessageReaderPanel extends JPanel {
 		}
 	}
 
-	private static String detailText(ParsedEmail parsed, InboxMessage message) {
-		StringBuilder text = new StringBuilder();
-		line(text, "reader.from", valueOrUnknown(parsed.senderLine()));
-		line(text, "reader.to", valueOrNone(parsed.recipientLine()));
-		line(text, "reader.cc", ParsedEmail.join(parsed.getCc()));
-		line(text, "reader.bcc", ParsedEmail.join(parsed.getBcc()));
-		line(text, "reader.replyTo", ParsedEmail.join(parsed.getReplyTo()));
-		line(text, "reader.date", MailDates.format(message.getReceivedDate()));
-		return text.toString().trim();
-	}
-
-	private static void line(StringBuilder text, String key, String value) {
-		if (Texts.isBlank(value)) {
-			return;
-		}
-		text.append(InboxText.get(key)).append(": ").append(value).append('\n');
-	}
-
 	private static String headerText(ParsedEmail parsed) {
 		StringBuilder text = new StringBuilder();
 		for (HeaderField field : parsed.getHeaders()) {
@@ -348,29 +374,11 @@ public final class MessageReaderPanel extends JPanel {
 		return text.toString();
 	}
 
-	private static String subjectOf(ParsedEmail parsed) {
-		if (Texts.isBlank(parsed.getSubject())) {
-			return InboxText.get("reader.nosubject");
-		}
-		return parsed.getSubject();
-	}
-
-	private static String valueOrUnknown(String value) {
+	private static String blank(String value, String fallback) {
 		if (Texts.isBlank(value)) {
-			return InboxText.get("reader.unknown");
+			return fallback;
 		}
 		return value;
-	}
-
-	private static String valueOrNone(String value) {
-		if (Texts.isBlank(value)) {
-			return InboxText.get("reader.none");
-		}
-		return value;
-	}
-
-	private static String escape(String value) {
-		return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
 	}
 
 	private static JTextArea area() {
@@ -379,6 +387,7 @@ public final class MessageReaderPanel extends JPanel {
 		area.setLineWrap(true);
 		area.setWrapStyleWord(true);
 		area.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+		area.setBorder(BorderFactory.createEmptyBorder(12, 16, 12, 16));
 		return area;
 	}
 

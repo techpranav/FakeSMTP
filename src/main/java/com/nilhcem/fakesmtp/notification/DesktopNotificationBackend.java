@@ -4,6 +4,8 @@ import java.awt.AWTException;
 import java.awt.Image;
 import java.awt.SystemTray;
 import java.awt.TrayIcon;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
@@ -14,11 +16,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Shows a native notification when the desktop supports one, and an in-window toast otherwise.
+ * Shows a native notification when the desktop supports one, and always shows an in-window toast.
  * <p>
- * On Windows and macOS the system tray balloon is used. On Linux, {@code notify-send} is tried
- * when there is no tray. Activating a tray balloon or the in-window toast selects the message.
- * {@code notify-send} cannot report which notification was clicked.
+ * On Windows and macOS the system tray balloon is used when available. Tray balloons are unreliable
+ * on some Windows builds, so the in-application toast is shown as well. On Linux, {@code notify-send}
+ * is tried when there is no tray. Activating a tray icon or the in-window toast selects the message.
  * </p>
  *
  * @since 2.1
@@ -33,22 +35,26 @@ public final class DesktopNotificationBackend implements NotificationBackend {
 	private TrayIcon trayIcon;
 	private String latestId;
 	private Boolean notifySendAvailable;
+	private Runnable bringToFront;
 
 	public DesktopNotificationBackend(InAppToast toast, Image icon) {
 		this.toast = toast;
 		this.icon = icon;
 	}
 
+	/**
+	 * @param bringToFront runs on the Swing thread when the tray icon is clicked.
+	 */
+	public void setBringToFront(Runnable bringToFront) {
+		this.bringToFront = bringToFront;
+	}
+
 	@Override
 	public void show(String title, String body, String messageId) {
 		latestId = messageId;
 		try {
-			if (showTray(title, body)) {
-				return;
-			}
-			if (showNotifySend(title, body)) {
-				return;
-			}
+			showTray(title, body);
+			showNotifySend(title, body);
 		} catch (RuntimeException e) {
 			LOGGER.warn("Desktop notification failed; using the in-application notice", e);
 		}
@@ -75,12 +81,28 @@ public final class DesktopNotificationBackend implements NotificationBackend {
 		}
 		trayIcon = new TrayIcon(icon, "FakeSMTP");
 		trayIcon.setImageAutoSize(true);
-		trayIcon.addActionListener(event -> {
+		trayIcon.setToolTip("FakeSMTP — click to open the latest email");
+		trayIcon.addActionListener(event -> activateLatest());
+		trayIcon.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent event) {
+				if (event.getClickCount() >= 1) {
+					activateLatest();
+				}
+			}
+		});
+		SystemTray.getSystemTray().add(trayIcon);
+	}
+
+	private void activateLatest() {
+		SwingUtilities.invokeLater(() -> {
+			if (bringToFront != null) {
+				bringToFront.run();
+			}
 			if (toast.getHandler() != null && latestId != null) {
 				toast.getHandler().toastActivated(latestId);
 			}
 		});
-		SystemTray.getSystemTray().add(trayIcon);
 	}
 
 	private boolean showNotifySend(String title, String body) {

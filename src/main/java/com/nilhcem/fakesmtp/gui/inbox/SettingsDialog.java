@@ -31,9 +31,10 @@ public final class SettingsDialog {
 
 	/**
 	 * @param parent the window that owns the dialog.
+	 * @param testNotification optional action that fires a sample desktop notification.
 	 * @return {@code true} when the user saved the settings.
 	 */
-	public static boolean show(Component parent) {
+	public static boolean show(Component parent, Runnable testNotification) {
 		UISettings settings = UISettings.INSTANCE;
 		JCheckBox notifications = box("settings.notifications", settings.getBoolean(UISettings.NOTIFICATIONS_ENABLED));
 		JCheckBox preview = box("settings.preview", settings.getBoolean(UISettings.NOTIFICATIONS_PREVIEW));
@@ -53,6 +54,11 @@ public final class SettingsDialog {
 		form.add(preview);
 		form.add(sound);
 		form.add(every);
+		if (testNotification != null) {
+			javax.swing.JButton test = new javax.swing.JButton(InboxText.get("settings.testNotification"));
+			test.addActionListener(event -> testNotification.run());
+			form.add(test);
+		}
 		form.add(images);
 		form.add(new JLabel(InboxText.get("settings.view")));
 		form.add(view, "grow");
