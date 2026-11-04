@@ -1,5 +1,7 @@
 package com.nilhcem.fakesmtp.mail;
 
+import com.nilhcem.fakesmtp.core.Texts;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.URLDecoder;
@@ -44,7 +46,7 @@ public final class MailUserAgent extends NaiveUserAgent {
 
 	@Override
 	protected InputStream resolveAndOpenStream(String uri) {
-		if (uri == null || uri.isBlank()) {
+		if (Texts.isBlank(uri)) {
 			return null;
 		}
 		String value = uri.trim();
@@ -83,10 +85,10 @@ public final class MailUserAgent extends NaiveUserAgent {
 			if (meta.contains(";base64")) {
 				data = Base64.getMimeDecoder().decode(payload);
 			} else {
-				data = URLDecoder.decode(payload, StandardCharsets.UTF_8).getBytes(StandardCharsets.UTF_8);
+				data = URLDecoder.decode(payload, "UTF-8").getBytes(StandardCharsets.UTF_8);
 			}
 			return new ByteArrayInputStream(data);
-		} catch (IllegalArgumentException e) {
+		} catch (Exception e) {
 			LOGGER.debug("Could not read a data URI image", e);
 			return null;
 		}

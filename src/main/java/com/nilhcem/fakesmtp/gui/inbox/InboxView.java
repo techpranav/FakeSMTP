@@ -1,5 +1,7 @@
 package com.nilhcem.fakesmtp.gui.inbox;
 
+import com.nilhcem.fakesmtp.core.Texts;
+
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Dimension;
@@ -176,7 +178,7 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 	@Override
 	public void openStoredFile(InboxMessage message) {
 		String path = message.getFilePath();
-		if (path == null || path.isBlank() || !new File(path).isFile()) {
+		if (Texts.isBlank(path) || !new File(path).isFile()) {
 			JOptionPane.showMessageDialog(this, InboxText.get("reader.open.missing"));
 			return;
 		}

@@ -1,5 +1,7 @@
 package com.nilhcem.fakesmtp.gui.inbox;
 
+import com.nilhcem.fakesmtp.core.Texts;
+
 import java.awt.Component;
 import java.awt.Desktop;
 import java.net.URI;
@@ -45,7 +47,7 @@ public final class SafeLinks {
 	}
 
 	private static URI parse(String uri) {
-		if (uri == null || uri.isBlank()) {
+		if (Texts.isBlank(uri)) {
 			return null;
 		}
 		try {

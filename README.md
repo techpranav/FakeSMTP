@@ -20,7 +20,7 @@ It is licensed under the very free BSD or GPL license, whichever you prefer.
 Requirements
 ------------
 
-You need Java 21 or newer installed on your machine. The project is built and tested with Temurin 21.
+You need Java 8 or newer installed on your machine. The jar is compiled for Java 8, so it also runs on Java 11, 17, and 21.
 
 If you are on a "Unix-like" machine (Mac, GNU/Linux, BSD...), you may have
 to be "root" to start the port `25`, otherwise, try another port >= `1024`.
@@ -97,7 +97,7 @@ Listed below are some greats alternatives to Fake SMTP:
 Building it
 -----------
 
-You need JDK 21 and Maven.
+You need JDK 8 or newer and Maven.
 Once installed, go to project directory and run the following command:
 
     mvn package -Dmaven.test.skip

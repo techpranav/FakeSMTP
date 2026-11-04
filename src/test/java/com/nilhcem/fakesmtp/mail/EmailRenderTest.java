@@ -44,7 +44,7 @@ public class EmailRenderTest {
 				|| email.getHtml().contains("auto-generated"));
 
 		BufferedImage image = HtmlRenderer.render(email, 980, 1700);
-		Path output = Path.of("target", "overdue-approval.png");
+		Path output = java.nio.file.Paths.get("target", "overdue-approval.png");
 		Files.createDirectories(output.getParent());
 		ImageIO.write(image, "png", output.toFile());
 
@@ -86,7 +86,7 @@ public class EmailRenderTest {
 
 	private static byte[] resource(String name) throws Exception {
 		try (InputStream input = EmailRenderTest.class.getClassLoader().getResourceAsStream(name)) {
-			return input.readAllBytes();
+			return org.apache.commons.io.IOUtils.toByteArray(input);
 		}
 	}
 

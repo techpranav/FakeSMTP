@@ -1,5 +1,7 @@
 package com.nilhcem.fakesmtp.mail;
 
+import com.nilhcem.fakesmtp.core.Texts;
+
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
@@ -35,7 +37,7 @@ public final class SvgRasterizer {
 	 * @return PNG bytes, or {@code null} when the document cannot be drawn.
 	 */
 	public static byte[] toPng(String svg) {
-		if (svg == null || svg.isBlank()) {
+		if (Texts.isBlank(svg)) {
 			return null;
 		}
 		try {

@@ -40,4 +40,4 @@ Light is the default. Dark is available from the header. Settings are saved in `
 - Emoji depend on fonts installed on the machine.
 - A tray click selects the most recent notified message.
 - Read/unread state is not kept across restarts.
-- The original root `Dockerfile` still downloads the upstream 2.0 zip. The image built from source uses Java 21.
+- The original root `Dockerfile` still downloads the upstream 2.0 zip. The image built from source uses Java 8.

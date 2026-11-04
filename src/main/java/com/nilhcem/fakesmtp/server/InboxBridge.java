@@ -126,7 +126,7 @@ public final class InboxBridge implements Observer {
 
 	private void loadFile(File file, boolean remote) {
 		try {
-			String content = Files.readString(file.toPath(), Charset.defaultCharset());
+			String content = new String(Files.readAllBytes(file.toPath()), Charset.defaultCharset());
 			EmailModel email = new EmailModel();
 			email.setEmailStr(content);
 			email.setFilePath(file.getAbsolutePath());

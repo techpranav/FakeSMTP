@@ -1,5 +1,7 @@
 package com.nilhcem.fakesmtp.notification;
 
+import com.nilhcem.fakesmtp.core.Texts;
+
 import java.awt.Toolkit;
 
 import org.slf4j.Logger;
@@ -36,13 +38,13 @@ public final class NewMailNotifier {
 				return;
 			}
 			String subject = message.getParsed().getSubject();
-			if (subject == null || subject.isBlank()) {
+			if (Texts.isBlank(subject)) {
 				subject = "(no subject)";
 			}
 			String body = "From: " + blank(message.getParsed().senderLine()) + "\nSubject: " + subject;
 			if (preferences.previewEnabled()) {
 				String preview = message.getParsed().getPreview();
-				if (preview != null && !preview.isBlank()) {
+				if (!Texts.isBlank(preview)) {
 					body = body + "\n" + preview;
 				}
 			}
@@ -64,7 +66,7 @@ public final class NewMailNotifier {
 	}
 
 	private static String blank(String value) {
-		if (value == null || value.isBlank()) {
+		if (Texts.isBlank(value)) {
 			return "(unknown)";
 		}
 		return value;

@@ -1,5 +1,7 @@
 package com.nilhcem.fakesmtp.mail;
 
+import com.nilhcem.fakesmtp.core.Texts;
+
 /**
  * A display name and mailbox address taken from a message header.
  *
@@ -27,8 +29,8 @@ public final class EmailAddress {
 	 * @return a single line such as {@code Ada Lovelace <ada@example.com>}.
 	 */
 	public String format() {
-		boolean hasPersonal = personal != null && !personal.isBlank();
-		boolean hasAddress = address != null && !address.isBlank();
+		boolean hasPersonal = !Texts.isBlank(personal);
+		boolean hasAddress = !Texts.isBlank(address);
 		if (hasPersonal && hasAddress) {
 			return personal + " <" + address + ">";
 		}

@@ -37,7 +37,10 @@ public class PackagedJarIT {
 				.start();
 		Thread drain = new Thread(() -> {
 			try {
-				process.getInputStream().transferTo(java.io.OutputStream.nullOutputStream());
+				byte[] buffer = new byte[4096];
+				while (process.getInputStream().read(buffer) >= 0) {
+					// Discard process output so the pipe cannot fill.
+				}
 			} catch (Exception ignored) {
 				// The process is stopped by the test.
 			}

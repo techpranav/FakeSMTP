@@ -1,5 +1,7 @@
 package com.nilhcem.fakesmtp.mail;
 
+import com.nilhcem.fakesmtp.core.Texts;
+
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
@@ -30,7 +32,7 @@ public final class HtmlRenderer {
 	}
 
 	public static void show(XHTMLPanel panel, MailUserAgent agent, ParsedEmail email) {
-		if (email == null || email.getPreparedHtml() == null || email.getPreparedHtml().isBlank()) {
+		if (email == null || Texts.isBlank(email.getPreparedHtml())) {
 			throw new IllegalArgumentException("This message has no HTML body");
 		}
 		agent.setInlineImages(email.getInlineImages());

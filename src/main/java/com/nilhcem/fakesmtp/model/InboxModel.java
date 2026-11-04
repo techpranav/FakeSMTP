@@ -1,5 +1,7 @@
 package com.nilhcem.fakesmtp.model;
 
+import com.nilhcem.fakesmtp.core.Texts;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -188,7 +190,7 @@ public final class InboxModel {
 	}
 
 	private boolean matchesQuery(InboxMessage message) {
-		if (query == null || query.isBlank()) {
+		if (Texts.isBlank(query)) {
 			return true;
 		}
 		if (message.getParsed() == null) {

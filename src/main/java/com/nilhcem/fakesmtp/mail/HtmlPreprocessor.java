@@ -1,5 +1,7 @@
 package com.nilhcem.fakesmtp.mail;
 
+import com.nilhcem.fakesmtp.core.Texts;
+
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -130,7 +132,7 @@ public final class HtmlPreprocessor {
 
 	private static Element fallback(Document document, String text) {
 		Element paragraph = document.createElement("p");
-		if (text == null || text.isBlank()) {
+		if (Texts.isBlank(text)) {
 			paragraph.text("An embedded drawing could not be shown.");
 		} else {
 			paragraph.text(text);
@@ -176,7 +178,7 @@ public final class HtmlPreprocessor {
 
 	private static void block(Element image) {
 		image.removeAttr("src");
-		if (image.attr("alt").isBlank()) {
+		if (Texts.isBlank(image.attr("alt"))) {
 			image.attr("alt", "Blocked image");
 		}
 	}

@@ -1,5 +1,7 @@
 package com.nilhcem.fakesmtp.mail;
 
+import com.nilhcem.fakesmtp.core.Texts;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -180,7 +182,7 @@ public final class EmailParser {
 		Charset charset = StandardCharsets.UTF_8;
 		try {
 			String name = new ContentType(part.getContentType()).getParameter("charset");
-			if (name != null && !name.isBlank()) {
+			if (!Texts.isBlank(name)) {
 				charset = Charset.forName(name);
 			}
 		} catch (Exception e) {
@@ -191,7 +193,7 @@ public final class EmailParser {
 
 	private static byte[] readBytes(InputStream input) throws Exception {
 		try (InputStream in = input) {
-			return in.readAllBytes();
+			return org.apache.commons.io.IOUtils.toByteArray(in);
 		}
 	}
 
@@ -210,7 +212,7 @@ public final class EmailParser {
 	private static String fileName(Part part) {
 		try {
 			String name = part.getFileName();
-			if (name == null || name.isBlank()) {
+			if (Texts.isBlank(name)) {
 				return "attachment";
 			}
 			return MimeUtility.decodeText(name);
@@ -276,7 +278,7 @@ public final class EmailParser {
 
 	private static String preview(String plain, String html) {
 		String text = plain;
-		if (text == null || text.isBlank()) {
+		if (Texts.isBlank(text)) {
 			if (html == null) {
 				text = "";
 			} else {

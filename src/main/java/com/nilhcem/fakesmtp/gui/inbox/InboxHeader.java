@@ -1,5 +1,7 @@
 package com.nilhcem.fakesmtp.gui.inbox;
 
+import com.nilhcem.fakesmtp.core.Texts;
+
 import java.awt.Color;
 import java.awt.Font;
 import java.io.IOException;
@@ -99,7 +101,7 @@ public final class InboxHeader extends JPanel {
 		} else if (running) {
 			text = InboxText.get("header.status.running");
 			String port = controls.getPort().get().getText();
-			if (port != null && !port.isBlank()) {
+			if (!Texts.isBlank(port)) {
 				text = text + "  " + port;
 			}
 			background = new Color(0xE6F4EA);

@@ -1,5 +1,7 @@
 package com.nilhcem.fakesmtp.gui.inbox;
 
+import com.nilhcem.fakesmtp.core.Texts;
+
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Desktop;
@@ -329,7 +331,7 @@ public final class MessageReaderPanel extends JPanel {
 	}
 
 	private static void line(StringBuilder text, String key, String value) {
-		if (value == null || value.isBlank()) {
+		if (Texts.isBlank(value)) {
 			return;
 		}
 		text.append(InboxText.get(key)).append(": ").append(value).append('\n');
@@ -347,21 +349,21 @@ public final class MessageReaderPanel extends JPanel {
 	}
 
 	private static String subjectOf(ParsedEmail parsed) {
-		if (parsed.getSubject() == null || parsed.getSubject().isBlank()) {
+		if (Texts.isBlank(parsed.getSubject())) {
 			return InboxText.get("reader.nosubject");
 		}
 		return parsed.getSubject();
 	}
 
 	private static String valueOrUnknown(String value) {
-		if (value == null || value.isBlank()) {
+		if (Texts.isBlank(value)) {
 			return InboxText.get("reader.unknown");
 		}
 		return value;
 	}
 
 	private static String valueOrNone(String value) {
-		if (value == null || value.isBlank()) {
+		if (Texts.isBlank(value)) {
 			return InboxText.get("reader.none");
 		}
 		return value;

@@ -1,5 +1,7 @@
 package com.nilhcem.fakesmtp.gui.inbox;
 
+import com.nilhcem.fakesmtp.core.Texts;
+
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Component;
@@ -161,7 +163,7 @@ public final class MessageListPanel extends JPanel {
 	}
 
 	private String emptyTitle() {
-		if (model.getQuery() != null && !model.getQuery().isBlank()) {
+		if (!Texts.isBlank(model.getQuery())) {
 			return InboxText.get("list.empty.search.title");
 		}
 		if (model.getFolder() == InboxFolder.UNREAD) {
@@ -174,7 +176,7 @@ public final class MessageListPanel extends JPanel {
 	}
 
 	private String emptyText() {
-		if (model.getQuery() != null && !model.getQuery().isBlank()) {
+		if (!Texts.isBlank(model.getQuery())) {
 			return InboxText.get("list.empty.search.text");
 		}
 		if (model.getFolder() == InboxFolder.UNREAD) {
@@ -200,10 +202,10 @@ public final class MessageListPanel extends JPanel {
 			String preview = "";
 			String clip = "";
 			if (parsed != null) {
-				if (!parsed.senderLine().isBlank()) {
+				if (!Texts.isBlank(parsed.senderLine())) {
 					sender = parsed.senderLine();
 				}
-				if (parsed.getSubject() != null && !parsed.getSubject().isBlank()) {
+				if (!Texts.isBlank(parsed.getSubject())) {
 					subject = parsed.getSubject();
 				}
 				preview = parsed.getPreview();

@@ -1,5 +1,7 @@
 package com.nilhcem.fakesmtp.gui.inbox;
 
+import com.nilhcem.fakesmtp.core.Texts;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -85,7 +87,7 @@ public final class HtmlEmailView extends JPanel {
 
 	public void showEmail(ParsedEmail email) {
 		banner.setVisible(email != null && email.getBlockedImages() > 0);
-		if (email == null || email.getPreparedHtml() == null || email.getPreparedHtml().isBlank()) {
+		if (email == null || Texts.isBlank(email.getPreparedHtml())) {
 			showFallback(email, InboxText.get("reader.nohtml"));
 			return;
 		}
@@ -117,7 +119,7 @@ public final class HtmlEmailView extends JPanel {
 
 	private void showFallback(ParsedEmail email, String note) {
 		String body = "";
-		if (email != null && email.getPlainText() != null && !email.getPlainText().isBlank()) {
+		if (email != null && !Texts.isBlank(email.getPlainText())) {
 			body = email.getPlainText();
 		} else if (email != null && email.getRaw() != null) {
 			body = email.getRaw();

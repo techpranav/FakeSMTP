@@ -112,13 +112,13 @@
 		<finalName>fakeSMTP-${project.version}</finalName>
 
 		<plugins>
-			<!-- Bytecode and API level of the newest JDK installed for this project (Java 21) -->
+			<!-- Java 8 bytecode so the jar runs on Java 8 and every newer JDK -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.13.0</version>
 				<configuration>
-					<release>21</release>
+					<release>8</release>
 				</configuration>
 			</plugin>
 

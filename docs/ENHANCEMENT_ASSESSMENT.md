@@ -2,7 +2,7 @@
 
 ## Decision update
 
-After this assessment, the build target was raised from the Java 8 fallback to **Java 21**, the newest JDK installed on the development machine (`Temurin 21.0.12`). The source Docker image was updated to `eclipse-temurin:21-jre` to match. HTML is still rendered with Flying Saucer; SVG charts in the sample message are rasterized with jsvg because Flying Saucer does not draw SVG.
+After this assessment, the project was developed on Temurin 21 but the packaged jar is compiled to **Java 8** bytecode so it runs on Java 8 and every newer JDK. The source Docker image uses `eclipse-temurin:8-jre`. HTML is still rendered with Flying Saucer; SVG charts in the sample message are rasterized with jsvg because Flying Saucer does not draw SVG.
 
 This assessment was written before any source change on the `feature/modern-ui` branch.
 It describes the code base as found on `master` (commit `a487607`, version `2.1-SNAPSHOT`).

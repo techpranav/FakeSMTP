@@ -1,5 +1,7 @@
 package com.nilhcem.fakesmtp.mail;
 
+import com.nilhcem.fakesmtp.core.Texts;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -24,7 +26,7 @@ public final class AttachmentFiles {
 	 */
 	public static String safeName(String name) {
 		String value = "attachment";
-		if (name != null && !name.isBlank()) {
+		if (!Texts.isBlank(name)) {
 			value = name.trim();
 		}
 		value = value.replace('\\', '/');
@@ -104,7 +106,7 @@ public final class AttachmentFiles {
 	 * @return {@code true} when there is nothing left to delete.
 	 */
 	public static boolean deleteStoredMessage(String path) {
-		if (path == null || path.isBlank()) {
+		if (Texts.isBlank(path)) {
 			return true;
 		}
 		File file = new File(path);
