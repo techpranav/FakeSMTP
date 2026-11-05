@@ -1,21 +1,28 @@
 # MailBox licensing
 
-Product code: `MAILBOX`. Java 17+. JAR ships **without** a `.lic` file.
+Product: `MAILBOX` · Java 17+ · JAR has **no** `.lic` inside.
 
-## Use
+## Run with a license
 
-1. Install `MAILBOX.lic` (or pick it when MailBox asks).
-2. Default folder: `%APPDATA%\UnifiedLicensing\licenses\`
-3. Override: `-Dulm.license.file=<path>`
+Place `MAILBOX.lic` in `%APPDATA%\UnifiedLicensing\licenses\`  
+or start with `-Dulm.license.file=C:\path\MAILBOX.lic`  
+or pick a file when MailBox shows **Select license…**.
 
-Expired / missing / wrong machine → GUI offers **Select license…** or Exit. No use without a valid license.
+Missing / expired / wrong machine → select a new license or Exit. No use without a valid license.
 
-## Issue a license (admin)
+## Admin: issue or renew
+
+No IP address is needed. Binding uses a **machine id**.
 
 ```bat
 java -jar ulm-generator.jar machine-id
-java -jar ulm-generator.jar generate --type CUSTOMER --customer "Name" --product MAILBOX --valid-until 2027-12-31 --out MAILBOX.lic --passphrase-env ULM_PASS
-java -jar ulm-generator.jar export-public-keys --out src\main\ulm\trusted-keys.properties
+
+java -jar ulm-generator.jar generate --type CUSTOMER --customer "Name" --product MAILBOX ^
+  --valid-until YYYY-MM-DD --out MAILBOX.lic --passphrase-env ULM_PASS
 ```
 
-Default generate binds to **this** PC. For another PC: `--machine-id <id>`. Floating: `--unbound`.
+- Default: bound to **this** PC.
+- Other PC: run `machine-id` there, then `--machine-id <id>`.
+- Any PC: `--unbound`.
+
+**Expired?** Generate a new `.lic` with the same signing key. Do **not** change app code or `trusted-keys.properties` (only re-export keys if you rotate signing keys).
