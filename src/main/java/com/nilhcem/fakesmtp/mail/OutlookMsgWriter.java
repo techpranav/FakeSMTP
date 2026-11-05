@@ -8,7 +8,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -45,8 +44,16 @@ public final class OutlookMsgWriter {
 	private static final long FLAGS = FLAG_READABLE | FLAG_WRITEABLE;
 	/** FILETIME epoch offset used by POI / jotlmsg. */
 	private static final long FILETIME_OFFSET = 1000L * 60L * 60L * 24L * (365L * 369L + 89L);
-	private static final MAPIProperty BODY_HTML_UNICODE =
-			MAPIProperty.createCustom(0x1013, Types.UNICODE_STRING, "BODY_HTML");
+	/** STORE_UNICODE_OK | STORE_HTML_OK | STORE_RTF_OK */
+	private static final int STORE_SUPPORT = 0x00040000 | 0x00010000 | 0x00000800;
+	/**
+	 * Outlook stores {@code PR_HTML}/{@code PidTagHtml} as binary UTF-8 (0x1013/0102),
+	 * not as a Unicode string stream (001F).
+	 */
+	private static final MAPIProperty HTML_BINARY =
+			MAPIProperty.createCustom(0x1013, Types.BINARY, "HTML");
+	/** PidTagInternetCodepage = UTF-8 */
+	private static final int INTERNET_CPID_UTF8 = 65001;
 
 	private OutlookMsgWriter() {
 		throw new UnsupportedOperationException();
@@ -91,13 +98,15 @@ public final class OutlookMsgWriter {
 			top.setNextRecipientId(countRecipients(toList, ccList, bccList));
 
 			top.setProperty(new PropertyValue(MAPIProperty.STORE_SUPPORT_MASK, FLAGS,
-					ByteBuffer.allocate(4).putInt(0x00040000).array()));
+					ByteBuffer.allocate(4).putInt(STORE_SUPPORT).array()));
 			top.setProperty(unicode(MAPIProperty.MESSAGE_CLASS, "IPM.Note"));
 			top.setProperty(new PropertyValue(MAPIProperty.HASATTACH, FLAGS,
 					attachments.isEmpty() ? new byte[] { 0 } : new byte[] { 1 }));
 			top.setProperty(new PropertyValue(MAPIProperty.MESSAGE_FLAGS, FLAGS,
 					ByteBuffer.allocate(4).putInt(2).array()));
 			top.setProperty(new PropertyValue(MAPIProperty.CLIENT_SUBMIT_TIME, FLAGS, dateToBytes(sent)));
+			top.setProperty(new PropertyValue(MAPIProperty.INTERNET_CPID, FLAGS,
+					ByteBuffer.allocate(4).putInt(INTERNET_CPID_UTF8).array()));
 			top.setProperty(unicode(MAPIProperty.TRANSPORT_MESSAGE_HEADERS, transportHeaders(parsed, sent,
 					senderName, senderEmail, toList, ccList, bccList, subject)));
 			top.setProperty(unicode(MAPIProperty.SUBJECT, subject));
@@ -105,7 +114,10 @@ public final class OutlookMsgWriter {
 				top.setProperty(unicode(MAPIProperty.BODY, plain));
 			}
 			if (!Texts.isBlank(html)) {
-				top.setProperty(new PropertyValue(BODY_HTML_UNICODE, FLAGS, StringUtil.getToUnicodeLE(html)));
+				// Binary PR_HTML + fromhtml RTF — required for Outlook to open as HTML (not Plain Text).
+				top.setProperty(new PropertyValue(HTML_BINARY, FLAGS, MsgHtmlBody.htmlBinary(html)));
+				top.setProperty(new PropertyValue(MAPIProperty.RTF_COMPRESSED, FLAGS,
+						MsgHtmlBody.rtfCompressedFromHtml(html)));
 			}
 			if (!Texts.isBlank(senderName)) {
 				top.setProperty(unicode(MAPIProperty.SENDER_NAME, senderName));
@@ -207,10 +219,7 @@ public final class OutlookMsgWriter {
 
 	private static List<AttachmentSpec> collectAttachments(ParsedEmail parsed) {
 		List<AttachmentSpec> list = new ArrayList<AttachmentSpec>();
-		if (!Texts.isBlank(parsed.getHtml())) {
-			list.add(new AttachmentSpec("message-body.html", "text/html",
-					parsed.getHtml().getBytes(StandardCharsets.UTF_8)));
-		}
+		// Do not attach message-body.html — HTML is embedded as the message body for Outlook.
 		for (MailAttachment attachment : parsed.getAttachments()) {
 			if (attachment == null || attachment.getData() == null) {
 				continue;

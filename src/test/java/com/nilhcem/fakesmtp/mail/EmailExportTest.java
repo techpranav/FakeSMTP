@@ -39,14 +39,10 @@ public class EmailExportTest {
 		assertTrue(loaded.getSubject().contains("MailBox sample") || loaded.getSubject().length() > 0);
 		assertNotNull(loaded.getPlainTextBody());
 		assertTrue(loaded.getAttachments().size() >= 2);
-		boolean htmlAttached = false;
 		for (ch.astorm.jotlmsg.OutlookMessageAttachment attachment : loaded.getAttachments()) {
-			if (attachment.getName() != null && attachment.getName().contains("message-body.html")) {
-				htmlAttached = true;
-				break;
-			}
+			assertTrue("HTML must be message body, not attachment: " + attachment.getName(),
+					attachment.getName() == null || !attachment.getName().equalsIgnoreCase("message-body.html"));
 		}
-		assertTrue(htmlAttached);
 		assertEquals(1, loaded.getRecipients(ch.astorm.jotlmsg.OutlookMessageRecipient.Type.TO).size());
 		assertEquals(1, loaded.getRecipients(ch.astorm.jotlmsg.OutlookMessageRecipient.Type.CC).size());
 		MAPIMessage poi = new MAPIMessage(msg.getAbsolutePath());
@@ -54,6 +50,20 @@ public class EmailExportTest {
 				|| poi.getDisplayFrom().toLowerCase().contains("mailbox"));
 		assertTrue(poi.getDisplayTo().toLowerCase().contains("developer"));
 		assertTrue(poi.getDisplayCC().toLowerCase().contains("qa"));
+		assertTrue("MSG must contain binary HTML body stream",
+				hasStream(msg, "__substg1.0_10130102"));
+		assertTrue("MSG must contain RTF compressed body",
+				hasStream(msg, "__substg1.0_10090102"));
+	}
+
+	private static boolean hasStream(File msg, String name) throws Exception {
+		org.apache.poi.poifs.filesystem.POIFSFileSystem fs =
+				new org.apache.poi.poifs.filesystem.POIFSFileSystem(msg, true);
+		try {
+			return fs.getRoot().hasEntry(name);
+		} finally {
+			fs.close();
+		}
 	}
 
 	@Test
