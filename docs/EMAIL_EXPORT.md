@@ -5,7 +5,7 @@
 - Right-click an email in the inbox list → **Save as Outlook Message (.msg)** (Outlook-style)
 - More menu → **Save as Outlook Message (.msg)**
 - Writer: **jotlmsg 1.8** (Apache-2.0) on Apache POI — genuine OLE `.msg`, not a renamed EML
-- Compiled for **Java 17+** (ULM floor). jotlmsg 3.x HTML-primary body needs JDK 21 and is not used, so one JAR runs on Java 17 and 21 alike.
+- Compiled for **Java 11+** (ULM floor). jotlmsg 3.x HTML-primary body needs JDK 21 and is not used, so one JAR runs on Java 11–21 alike.
 - Contents: subject, from, To/CC/BCC, sent/received date, plain-text body, HTML as `message-body.html` attachment, file attachments, inline images as attachments
 - Independent validation: unit test reloads the file with `new OutlookMessage(file)` and asserts recipients + HTML attachment
 

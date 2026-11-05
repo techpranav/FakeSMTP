@@ -15,8 +15,8 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
 		<docker.image>mailbox</docker.image>
-		<!-- ULM license-sdk requires Java 17+. Bytecode targets 17 so the JAR runs on Java 17+. -->
-		<maven.compiler.release>17</maven.compiler.release>
+		<!-- ULM license-sdk supports Java 11+ (Ed25519 via JDK 15+ or BouncyCastle on 11–14). -->
+		<maven.compiler.release>11</maven.compiler.release>
 	</properties>
 
 	<dependencies>
@@ -142,7 +142,7 @@
 		</resources>
 
 		<plugins>
-			<!-- Java 17 required by ULM license-sdk (Ed25519 offline licensing) -->
+			<!-- Java 11+ (ULM license-sdk with BouncyCastle Ed25519 on 11–14) -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>

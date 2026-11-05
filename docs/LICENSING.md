@@ -1,6 +1,6 @@
 # MailBox licensing
 
-Product: `MAILBOX` · Java 17+ · JAR has **no** `.lic` inside.
+Product: `MAILBOX` · Java 11+ · JAR has **no** `.lic` inside.
 
 ## Run with a license
 

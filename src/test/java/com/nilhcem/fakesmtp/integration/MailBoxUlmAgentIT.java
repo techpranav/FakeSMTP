@@ -117,6 +117,7 @@ public class MailBoxUlmAgentIT {
         cmd.add("-p");
         cmd.add("2525");
         ProcessBuilder pb = new ProcessBuilder(cmd);
+        pb.directory(dist.toFile());
         pb.environment().put("APPDATA", sandbox.resolve("appdata").toString());
         pb.redirectErrorStream(true);
         Process process = pb.start();

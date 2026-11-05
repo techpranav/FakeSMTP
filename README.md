@@ -15,8 +15,8 @@ MailBox originated from the [FakeSMTP](https://github.com/Nilhcem/FakeSMTP) proj
 Requirements
 ------------
 
-- **Java 17 or newer** to run the jar (ULM licensing requires 17+; bytecode is compiled for 17)
-- **JDK 17+ and Maven 3.9+** to build from source
+- **Java 11 or newer** to run the jar (ULM licensing supports 11+; bytecode is compiled for 11)
+- **JDK 11+ and Maven 3.9+** to build from source
 
 On Unix-like systems you may need root (or another port ≥ 1024) to bind port 25.
 
@@ -78,7 +78,7 @@ target/MailBox.jar
 
 1. Open [techpranav/MailBox](https://github.com/techpranav/MailBox).
 2. Download `MailBox.jar`.
-3. Keep Java 17+ installed on the machine that will run it (`java -version`).
+3. Keep Java 11+ installed on the machine that will run it (`java -version`).
 
 ### From this repository (developers)
 
