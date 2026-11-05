@@ -39,8 +39,8 @@ public class MailBoxUlmAgentIT {
         Path agent = ulmRoot.resolve("license-agent/target/ulm-agent.jar");
         Path cli = ulmRoot.resolve("license-cli/target/ulm-cli.jar");
         Path generator = ulmRoot.resolve("license-generator/target/ulm-generator.jar");
-        Assume.assumeTrue("MailBox.jar missing — run mvn package first", Files.isRegularFile(mailboxJar));
-        Assume.assumeTrue("ULM agent missing — build unifiedlicensemanager 1.1.0", Files.isRegularFile(agent));
+        Assume.assumeTrue("MailBox.jar missing - run mvn package first", Files.isRegularFile(mailboxJar));
+        Assume.assumeTrue("ULM agent missing - build unifiedlicensemanager 1.1.0", Files.isRegularFile(agent));
         Assume.assumeTrue("ULM cli missing", Files.isRegularFile(cli));
         Assume.assumeTrue("ULM generator missing", Files.isRegularFile(generator));
 

@@ -1,7 +1,9 @@
 # ULM public keys for MailBox
 
-Place `trusted-keys.properties` here (exported from the ULM License Generator).
+`trusted-keys.properties` in this folder holds **public verification keys only**.
 
-- Public keys only.
-- Never place `*.ulmkey`, passphrases, or the generator database in this folder.
-- The file is required for `mvn -Pulm package` and `scripts\package-with-ulm.cmd`.
+- Safe to commit and ship inside the application JAR (`META-INF/ulm/`).
+- Cannot create or forge licenses.
+- Never place `*.ulmkey`, passphrases, generator databases, or `.lic` files here.
+
+Export from the ULM License Generator (`export-public-keys`) whenever keys are rotated.
