@@ -32,8 +32,9 @@ MailBox requires **Java 17+** (ULM `license-sdk`).
 3. **Background mode (`-s`) / headless:** prints a clear error to stderr and exits with code `3`
    (no interactive picker). Pass `-Dulm.license.file=<path>` before starting.
 
-Public verification keys are embedded from `src/main/ulm/trusted-keys.properties` into
-`META-INF/ulm/` at package time. Private keys and `.lic` files are never packaged into the JAR.
+Public verification keys live in `src/main/ulm/trusted-keys.properties` (safe to commit —
+public only) and are embedded into `META-INF/ulm/` at package time. Private keys and `.lic`
+files are never packaged into the JAR and must not be committed.
 
 ## Build
 

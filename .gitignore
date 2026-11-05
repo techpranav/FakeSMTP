@@ -19,8 +19,8 @@ target/*
 received-emails/*
 emails-recus/*
 
-# ULM — never commit signing material or generated licenses
-src/main/ulm/trusted-keys.properties
+# ULM — public trusted-keys.properties MAY be committed (verification only).
+# Never commit signing material or generated licenses.
 *.ulmkey
 *.lic
 target/ulm-dist/
