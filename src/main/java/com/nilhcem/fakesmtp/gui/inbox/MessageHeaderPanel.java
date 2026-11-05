@@ -39,7 +39,6 @@ public final class MessageHeaderPanel extends JPanel {
 		setOpaque(false);
 
 		subject.setFont(UiTokens.subjectFont(subject.getFont()));
-		subject.setForeground(UiTokens.TEXT);
 		add(subject, "growx, wrap");
 
 		JPanel identity = new JPanel(new BorderLayout(UiTokens.SPACE_SM, 0));
@@ -47,9 +46,7 @@ public final class MessageHeaderPanel extends JPanel {
 		avatar.setPreferredSize(new java.awt.Dimension(UiTokens.AVATAR_SIZE, UiTokens.AVATAR_SIZE));
 		identity.add(avatar, BorderLayout.WEST);
 
-		sender.setForeground(UiTokens.TEXT);
 		sender.setFont(sender.getFont().deriveFont(Font.BOLD, 13f));
-		date.setForeground(UiTokens.TEXT_SECONDARY);
 		date.setFont(UiTokens.compactFont(date.getFont()));
 		date.setHorizontalAlignment(SwingConstants.RIGHT);
 
@@ -60,9 +57,7 @@ public final class MessageHeaderPanel extends JPanel {
 		identity.add(senderRow, BorderLayout.CENTER);
 		add(identity, "growx, wrap");
 
-		recipients.setForeground(UiTokens.TEXT_SECONDARY);
 		recipients.setFont(UiTokens.compactFont(recipients.getFont()));
-		detailsToggle.setForeground(UiTokens.ACCENT);
 		detailsToggle.setFont(UiTokens.compactFont(detailsToggle.getFont()));
 		detailsToggle.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 		detailsToggle.addMouseListener(new MouseAdapter() {
@@ -80,12 +75,20 @@ public final class MessageHeaderPanel extends JPanel {
 
 		details.setOpaque(false);
 		details.setVisible(false);
-		detailsText.setForeground(UiTokens.TEXT_SECONDARY);
 		detailsText.setFont(UiTokens.compactFont(detailsText.getFont()));
 		detailsText.setVerticalAlignment(SwingConstants.TOP);
 		details.add(detailsText, "growx");
 		add(details, "growx, wrap, hidemode 3");
+		applyTheme();
+	}
 
+	public void applyTheme() {
+		subject.setForeground(UiTokens.TEXT);
+		sender.setForeground(UiTokens.TEXT);
+		date.setForeground(UiTokens.TEXT_SECONDARY);
+		recipients.setForeground(UiTokens.TEXT_SECONDARY);
+		detailsToggle.setForeground(UiTokens.ACCENT);
+		detailsText.setForeground(UiTokens.TEXT_SECONDARY);
 		setBorder(BorderFactory.createCompoundBorder(
 				UiTokens.bottomHairline(),
 				BorderFactory.createEmptyBorder(0, 0, UiTokens.SPACE_SM, 0)));
@@ -110,7 +113,8 @@ public final class MessageHeaderPanel extends JPanel {
 		}
 		recipients.setText(summary.toString());
 
-		StringBuilder full = new StringBuilder("<html><body style='width:100%;color:#687386;font-size:11px'>");
+		StringBuilder full = new StringBuilder("<html><body style='width:100%;color:")
+				.append(UiTokens.toHex(UiTokens.TEXT_SECONDARY)).append(";font-size:11px'>");
 		full.append("<b>").append(InboxText.get("reader.to")).append(":</b> ").append(escape(to)).append("<br>");
 		if (!Texts.isBlank(cc)) {
 			full.append("<b>").append(InboxText.get("reader.cc")).append(":</b> ").append(escape(cc)).append("<br>");

@@ -71,13 +71,17 @@ public final class MessageReaderPanel extends JPanel {
 	private final JToggleButton rawButton = new JToggleButton(InboxText.get("reader.raw"));
 	private final JButton readButton = new JButton(InboxText.get("reader.markUnread"));
 	private final JButton flagButton = new JButton(InboxText.get("reader.flag"));
+	private final JPanel tools = new JPanel(new BorderLayout());
+	private final JPanel headingPad = new JPanel(new BorderLayout());
+	private final JPanel content = new JPanel(new BorderLayout());
+	private final EmptyState emptyState = new EmptyState(InboxText.get("list.empty.selection.title"),
+			InboxText.get("list.empty.selection.text"));
 	private InboxMessage current;
 
 	public MessageReaderPanel(MessageActions actions) {
 		super(new BorderLayout());
 		this.actions = actions;
 		setOpaque(true);
-		setBackground(UiTokens.SURFACE);
 		setMinimumSize(new Dimension(320, 200));
 		attachmentBox.setLayout(new BoxLayout(attachmentBox, BoxLayout.Y_AXIS));
 		attachmentBox.setOpaque(false);
@@ -161,17 +165,12 @@ public final class MessageReaderPanel extends JPanel {
 		actionGroup.add(readButton);
 		actionGroup.add(flagButton);
 		actionGroup.add(moreButton);
-		JPanel tools = new JPanel(new BorderLayout());
 		tools.setOpaque(true);
-		tools.setBackground(UiTokens.APP_BG);
-		tools.setBorder(BorderFactory.createCompoundBorder(
-				UiTokens.bottomHairline(),
-				BorderFactory.createEmptyBorder(6, 12, 6, 12)));
 		tools.add(viewGroup, BorderLayout.WEST);
 		tools.add(actionGroup, BorderLayout.EAST);
 
 		body.setOpaque(true);
-		body.setBackground(Color.WHITE);
+		body.setBackground(UiTokens.EMAIL_SURFACE);
 		body.setMinimumSize(new Dimension(200, 120));
 		body.add(htmlView, "html");
 		body.add(scroll(plain), "text");
@@ -186,8 +185,7 @@ public final class MessageReaderPanel extends JPanel {
 		heading.add(headerPanel);
 		heading.add(attachmentScroll);
 
-		JPanel headingPad = new JPanel(new BorderLayout());
-		headingPad.setOpaque(false);
+		headingPad.setOpaque(true);
 		headingPad.setBorder(BorderFactory.createEmptyBorder(UiTokens.SPACE_SM, UiTokens.SPACE_MD, UiTokens.SPACE_XS, UiTokens.SPACE_MD));
 		headingPad.add(heading, BorderLayout.CENTER);
 
@@ -196,15 +194,42 @@ public final class MessageReaderPanel extends JPanel {
 		top.add(tools, BorderLayout.NORTH);
 		top.add(headingPad, BorderLayout.CENTER);
 
-		JPanel content = new JPanel(new BorderLayout());
 		content.setOpaque(true);
-		content.setBackground(UiTokens.SURFACE);
 		content.add(top, BorderLayout.NORTH);
 		content.add(body, BorderLayout.CENTER);
 		outerCards.add(content, "message");
-		outerCards.add(new EmptyState(InboxText.get("list.empty.selection.title"), InboxText.get("list.empty.selection.text")), "empty");
+		outerCards.add(emptyState, "empty");
 		add(outerCards, BorderLayout.CENTER);
+		applyTheme();
 		showNone();
+	}
+
+	public void applyTheme() {
+		setBackground(UiTokens.READER_CHROME_BG);
+		content.setBackground(UiTokens.READER_CHROME_BG);
+		tools.setBackground(UiTokens.SURFACE_ALT);
+		tools.setBorder(BorderFactory.createCompoundBorder(
+				UiTokens.bottomHairline(),
+				BorderFactory.createEmptyBorder(6, 12, 6, 12)));
+		headingPad.setBackground(UiTokens.READER_CHROME_BG);
+		headerPanel.applyTheme();
+		emptyState.applyTheme();
+		styleTextArea(plain);
+		styleTextArea(headers);
+		styleTextArea(raw);
+		// HTML email surface stays independent of the app theme.
+		body.setBackground(UiTokens.EMAIL_SURFACE);
+		if (current != null && current.getParsed() != null) {
+			fillAttachments(current.getParsed());
+		}
+		revalidate();
+		repaint();
+	}
+
+	private static void styleTextArea(JTextArea area) {
+		area.setBackground(UiTokens.SURFACE);
+		area.setForeground(UiTokens.TEXT);
+		area.setCaretColor(UiTokens.TEXT);
 	}
 
 	public void showNone() {
@@ -298,6 +323,7 @@ public final class MessageReaderPanel extends JPanel {
 		JLabel title = new JLabel(InboxText.get("attach.title"));
 		title.setFont(title.getFont().deriveFont(Font.BOLD, 12f));
 		title.setForeground(UiTokens.TEXT);
+		title.setOpaque(false);
 		JButton saveAll = tiny(InboxText.get("attach.saveAll"));
 		saveAll.addActionListener(event -> saveAll(parsed));
 		titleRow.add(title, BorderLayout.WEST);
@@ -319,7 +345,7 @@ public final class MessageReaderPanel extends JPanel {
 	private JPanel attachmentCard(MailAttachment attachment) {
 		JPanel card = new JPanel(new BorderLayout(UiTokens.SPACE_SM, 0));
 		card.setOpaque(true);
-		card.setBackground(UiTokens.APP_BG);
+		card.setBackground(UiTokens.SURFACE_ALT);
 		card.setBorder(UiTokens.cardBorder());
 		card.setPreferredSize(new Dimension(UiTokens.ATTACH_CARD_WIDTH, UiTokens.ATTACH_CARD_HEIGHT));
 		card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -331,7 +357,7 @@ public final class MessageReaderPanel extends JPanel {
 
 			@Override
 			public void mouseExited(MouseEvent event) {
-				card.setBackground(UiTokens.APP_BG);
+				card.setBackground(UiTokens.SURFACE_ALT);
 			}
 		});
 
@@ -509,6 +535,7 @@ public final class MessageReaderPanel extends JPanel {
 		area.setWrapStyleWord(true);
 		area.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
 		area.setBorder(BorderFactory.createEmptyBorder(12, 16, 12, 16));
+		styleTextArea(area);
 		return area;
 	}
 

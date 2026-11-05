@@ -1,56 +1,76 @@
 package com.nilhcem.fakesmtp.notification;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Font;
 
 import javax.swing.BorderFactory;
+import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
+import com.nilhcem.fakesmtp.core.UISettings;
+import com.nilhcem.fakesmtp.gui.inbox.InboxText;
+import com.nilhcem.fakesmtp.gui.inbox.UiTokens;
+
 /**
- * A notice inside the window shown for every new email (and as a fallback when the tray fails).
+ * Compact in-window toast for new mail. Theme-aware; does not occupy the status bar.
  *
  * @since 2.1
  */
 public final class InAppToast extends JPanel {
 
-	private static final int HIDE_AFTER_MS = 10000;
-	private static final int PADDING = 10;
+	private static final int DEFAULT_HIDE_MS = 8000;
 
 	private final JLabel titleLabel = new JLabel(" ");
 	private final JLabel bodyLabel = new JLabel(" ");
+	private final JButton openButton = new JButton(InboxText.get("toast.open"));
+	private final JButton dismissButton = new JButton(InboxText.get("toast.dismiss"));
 	private final Timer timer;
 	private String messageId;
 	private ToastHandler handler;
 
 	public InAppToast() {
-		super(new BorderLayout(PADDING, 2));
+		super(new BorderLayout(8, 4));
 		setVisible(false);
 		setOpaque(true);
-		setBackground(new Color(0xE8F0FE));
+		setPreferredSize(new Dimension(UiTokens.TOAST_WIDTH, 92));
+		setMaximumSize(new Dimension(UiTokens.TOAST_WIDTH, 120));
 		setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-		setBorder(BorderFactory.createCompoundBorder(
-				BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(0xAECBFA)),
-				BorderFactory.createEmptyBorder(PADDING, PADDING, PADDING, PADDING)));
-		titleLabel.setFont(titleLabel.getFont().deriveFont(Font.BOLD));
-		titleLabel.setForeground(new Color(0x174EA6));
-		bodyLabel.setForeground(new Color(0x202124));
+		titleLabel.setFont(titleLabel.getFont().deriveFont(Font.BOLD, 12.5f));
+		bodyLabel.setFont(UiTokens.compactFont(bodyLabel.getFont()));
+		openButton.putClientProperty("JButton.buttonType", "toolBarButton");
+		dismissButton.putClientProperty("JButton.buttonType", "toolBarButton");
+		openButton.addActionListener(event -> activate());
+		dismissButton.addActionListener(event -> hideToast());
+		JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+		actions.setOpaque(false);
+		actions.add(openButton);
+		actions.add(dismissButton);
 		add(titleLabel, BorderLayout.NORTH);
 		add(bodyLabel, BorderLayout.CENTER);
-		timer = new Timer(HIDE_AFTER_MS, event -> setVisible(false));
+		add(actions, BorderLayout.SOUTH);
+		timer = new Timer(hideDelayMs(), event -> hideToast());
 		timer.setRepeats(false);
 		addMouseListener(new java.awt.event.MouseAdapter() {
 			@Override
 			public void mouseClicked(java.awt.event.MouseEvent event) {
-				if (handler != null && messageId != null) {
-					handler.toastActivated(messageId);
-				}
-				setVisible(false);
+				activate();
 			}
 		});
+		applyTheme();
+	}
+
+	public void applyTheme() {
+		setBackground(UiTokens.TOAST_BG);
+		setBorder(BorderFactory.createCompoundBorder(
+				BorderFactory.createLineBorder(UiTokens.TOAST_BORDER),
+				BorderFactory.createEmptyBorder(10, 12, 8, 12)));
+		titleLabel.setForeground(UiTokens.TOAST_TITLE);
+		bodyLabel.setForeground(UiTokens.TOAST_BODY);
 	}
 
 	public void setHandler(ToastHandler handler) {
@@ -65,15 +85,40 @@ public final class InAppToast extends JPanel {
 		titleLabel.setText(title);
 		bodyLabel.setText(toHtml(body));
 		messageId = id;
+		applyTheme();
+		timer.setInitialDelay(hideDelayMs());
 		setVisible(true);
 		revalidate();
 		repaint();
 		timer.restart();
 	}
 
+	private void activate() {
+		if (handler != null && messageId != null) {
+			handler.toastActivated(messageId);
+		}
+		hideToast();
+	}
+
+	private void hideToast() {
+		setVisible(false);
+		timer.stop();
+	}
+
+	private static int hideDelayMs() {
+		int seconds = UISettings.INSTANCE.getInt(UISettings.NOTIFICATIONS_TOAST_SECONDS, DEFAULT_HIDE_MS / 1000);
+		if (seconds < 2) {
+			seconds = 2;
+		}
+		if (seconds > 60) {
+			seconds = 60;
+		}
+		return seconds * 1000;
+	}
+
 	private static String toHtml(String body) {
 		String escaped = body.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
-		return "<html>" + escaped.replace("\n", "<br>") + "</html>";
+		return "<html><body style='width:280px'>" + escaped.replace("\n", "<br>") + "</body></html>";
 	}
 
 	/**

@@ -52,13 +52,24 @@ public final class DesktopNotificationBackend implements NotificationBackend {
 	@Override
 	public void show(String title, String body, String messageId) {
 		latestId = messageId;
-		try {
-			showTray(title, body);
-			showNotifySend(title, body);
-		} catch (RuntimeException e) {
-			LOGGER.warn("Desktop notification failed; using the in-application notice", e);
+		boolean desktop = com.nilhcem.fakesmtp.core.UISettings.INSTANCE
+				.getBoolean(com.nilhcem.fakesmtp.core.UISettings.NOTIFICATIONS_DESKTOP);
+		boolean inApp = com.nilhcem.fakesmtp.core.UISettings.INSTANCE
+				.getBoolean(com.nilhcem.fakesmtp.core.UISettings.NOTIFICATIONS_INAPP);
+		if (desktop) {
+			try {
+				showTray(title, body);
+				showNotifySend(title, body);
+			} catch (RuntimeException e) {
+				LOGGER.warn("Desktop notification failed; using the in-application notice", e);
+				if (!inApp) {
+					SwingUtilities.invokeLater(() -> toast.showToast(title, body, messageId));
+				}
+			}
 		}
-		SwingUtilities.invokeLater(() -> toast.showToast(title, body, messageId));
+		if (inApp) {
+			SwingUtilities.invokeLater(() -> toast.showToast(title, body, messageId));
+		}
 	}
 
 	private boolean showTray(String title, String body) {

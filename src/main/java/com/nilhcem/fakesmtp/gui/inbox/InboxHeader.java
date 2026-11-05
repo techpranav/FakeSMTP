@@ -36,7 +36,10 @@ public final class InboxHeader extends JPanel {
 	private static final Logger LOGGER = LoggerFactory.getLogger(InboxHeader.class);
 
 	private final LegacyControls controls;
+	private final JLabel brand = new JLabel(InboxText.get("header.brand"));
+	private final JLabel tagline = new JLabel(InboxText.get("header.tagline"));
 	private final JLabel status = new JLabel(" ", SwingConstants.CENTER);
+	private final JLabel portLabel = new JLabel(InboxText.get("header.port"));
 	private final JToggleButton notifications = new JToggleButton(InboxText.get("header.notifications"));
 	private final JComboBox<String> theme = new JComboBox<String>(new String[] {
 		InboxText.get("header.theme.light"), InboxText.get("header.theme.dark")
@@ -50,15 +53,9 @@ public final class InboxHeader extends JPanel {
 		super(new MigLayout("insets 6 14 6 14, gapx 10", "[]10[grow]10[]10[]", "[]"));
 		this.controls = controls;
 		setOpaque(true);
-		setBackground(UiTokens.SURFACE);
-		setBorder(UiTokens.bottomHairline());
 		setPreferredSize(new Dimension(10, UiTokens.HEADER_HEIGHT));
 
-		JLabel brand = new JLabel(InboxText.get("header.brand"));
 		brand.setFont(UiTokens.brandFont(brand.getFont()));
-		brand.setForeground(UiTokens.ACCENT);
-		JLabel tagline = new JLabel(InboxText.get("header.tagline"));
-		tagline.setForeground(UiTokens.TEXT_SECONDARY);
 		tagline.setFont(UiTokens.compactFont(tagline.getFont()));
 		JPanel brandBlock = new JPanel(new BorderLayout(0, 0));
 		brandBlock.setOpaque(false);
@@ -77,8 +74,6 @@ public final class InboxHeader extends JPanel {
 		JPanel smtp = new JPanel(new MigLayout("insets 0, gap 6", "[][][][][][][]", "[]"));
 		smtp.setOpaque(false);
 		smtp.add(status);
-		JLabel portLabel = new JLabel(InboxText.get("header.port"));
-		portLabel.setForeground(UiTokens.TEXT_SECONDARY);
 		portLabel.setFont(UiTokens.secondaryFont(portLabel.getFont()));
 		smtp.add(portLabel);
 		smtp.add(controls.getPort().get(), "w 56!, h " + UiTokens.CONTROL_HEIGHT + "!");
@@ -134,6 +129,16 @@ public final class InboxHeader extends JPanel {
 		add(smtp, "grow");
 		add(divider, "growy, hmax 24");
 		add(actions);
+		applyTheme();
+		syncServerState();
+	}
+
+	public void applyTheme() {
+		setBackground(UiTokens.SURFACE);
+		setBorder(UiTokens.bottomHairline());
+		brand.setForeground(UiTokens.ACCENT);
+		tagline.setForeground(UiTokens.TEXT_SECONDARY);
+		portLabel.setForeground(UiTokens.TEXT_SECONDARY);
 		syncServerState();
 	}
 

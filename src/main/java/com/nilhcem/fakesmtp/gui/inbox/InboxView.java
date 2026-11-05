@@ -61,6 +61,11 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 	private final MessageReaderPanel reader;
 	private final MessageListPanel list;
 	private final JPanel centerCards = new JPanel(new CardLayout());
+	private final JPanel statusBar = new JPanel();
+	private final JLabel statusStorageLabel = new JLabel(InboxText.get("status.storage"));
+	private final JLabel statusPathLabel = new JLabel(" ");
+	private final JLabel statusCountLabel = new JLabel(" ");
+	private final JLabel logTitle = new JLabel(InboxText.get("folder.log"));
 	private final Runnable testNotification;
 
 	public InboxView(LegacyControls controls, InboxModel model, InboxBridge bridge, InAppToast toast, WindowRef window,
@@ -122,10 +127,32 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 		add(header, BorderLayout.NORTH);
 		add(body, BorderLayout.CENTER);
 		JPanel south = new JPanel(new BorderLayout());
-		toast.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 12, 4, 12));
-		south.add(toast, BorderLayout.NORTH);
-		south.add(statusBar(), BorderLayout.SOUTH);
+		south.setOpaque(false);
+		JPanel toastTray = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 12, 4));
+		toastTray.setOpaque(false);
+		toastTray.add(toast);
+		south.add(toastTray, BorderLayout.NORTH);
+		south.add(buildStatusBar(), BorderLayout.SOUTH);
 		add(south, BorderLayout.SOUTH);
+		applyTheme();
+	}
+
+	public void applyTheme() {
+		setBackground(UiTokens.APP_BG);
+		centerCards.setBackground(UiTokens.APP_BG);
+		header.applyTheme();
+		sidebar.applyTheme();
+		list.applyTheme();
+		reader.applyTheme();
+		toast.applyTheme();
+		statusBar.setBackground(UiTokens.SURFACE_ALT);
+		statusBar.setBorder(UiTokens.topHairline());
+		statusStorageLabel.setForeground(UiTokens.TEXT_SECONDARY);
+		statusPathLabel.setForeground(UiTokens.TEXT);
+		statusCountLabel.setForeground(UiTokens.TEXT_SECONDARY);
+		logTitle.setForeground(UiTokens.TEXT);
+		revalidate();
+		repaint();
 	}
 
 	public InAppToast getToast() {
@@ -348,16 +375,13 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 		void export(InboxMessage source, File file) throws IOException;
 	}
 
-	private JPanel statusBar() {
-		JPanel bar = new JPanel(new MigLayout("insets 3 12 3 12, gapx 6",
+	private JPanel buildStatusBar() {
+		statusBar.setLayout(new MigLayout("insets 3 12 3 12, gapx 6",
 				"[][][][][][grow][][]", "[]"));
-		bar.setOpaque(true);
-		bar.setBackground(UiTokens.APP_BG);
-		bar.setBorder(javax.swing.BorderFactory.createMatteBorder(1, 0, 0, 0, UiTokens.BORDER));
-		bar.setPreferredSize(new Dimension(10, 32));
+		statusBar.setOpaque(true);
+		statusBar.setPreferredSize(new Dimension(10, 32));
 
 		javax.swing.JTextField pathField = controls.getSaveDirectory().get();
-		// Detach legacy field from the visible chrome; DirChooser observers still use SaveMsgField.
 		pathField.setVisible(false);
 		pathField.setFocusable(false);
 
@@ -365,31 +389,27 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 		JLabel folderIcon = directoryIcon == null ? new JLabel("\u25A1") : new JLabel(directoryIcon);
 		folderIcon.setToolTipText(pathField.getToolTipText());
 
-		JLabel storageLabel = new JLabel(InboxText.get("status.storage"));
-		storageLabel.setForeground(UiTokens.TEXT_SECONDARY);
-		storageLabel.setFont(UiTokens.statusFont(storageLabel.getFont()));
-		storageLabel.setBorder(null);
-
-		JLabel pathLabel = new JLabel(shortStoragePath(pathField.getText()));
-		pathLabel.setOpaque(false);
-		pathLabel.setBorder(null);
-		pathLabel.setForeground(UiTokens.TEXT);
-		pathLabel.setFont(UiTokens.statusFont(pathLabel.getFont()));
-		pathLabel.setToolTipText(pathField.getText());
+		statusStorageLabel.setFont(UiTokens.statusFont(statusStorageLabel.getFont()));
+		statusStorageLabel.setBorder(null);
+		statusPathLabel.setText(shortStoragePath(pathField.getText()));
+		statusPathLabel.setOpaque(false);
+		statusPathLabel.setBorder(null);
+		statusPathLabel.setFont(UiTokens.statusFont(statusPathLabel.getFont()));
+		statusPathLabel.setToolTipText(pathField.getText());
 		pathField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
 			@Override
 			public void insertUpdate(javax.swing.event.DocumentEvent event) {
-				syncPathLabel(pathField, pathLabel);
+				syncPathLabel(pathField, statusPathLabel);
 			}
 
 			@Override
 			public void removeUpdate(javax.swing.event.DocumentEvent event) {
-				syncPathLabel(pathField, pathLabel);
+				syncPathLabel(pathField, statusPathLabel);
 			}
 
 			@Override
 			public void changedUpdate(javax.swing.event.DocumentEvent event) {
-				syncPathLabel(pathField, pathLabel);
+				syncPathLabel(pathField, statusPathLabel);
 			}
 		});
 
@@ -404,28 +424,27 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 
 		JLabel received = controls.getReceived().get();
 		received.setVisible(false);
-		JLabel countLabel = new JLabel(emailCountText(received.getText()));
-		countLabel.setOpaque(false);
-		countLabel.setBorder(null);
-		countLabel.setForeground(UiTokens.TEXT_SECONDARY);
-		countLabel.setFont(UiTokens.statusFont(countLabel.getFont()));
+		statusCountLabel.setText(emailCountText(received.getText()));
+		statusCountLabel.setOpaque(false);
+		statusCountLabel.setBorder(null);
+		statusCountLabel.setFont(UiTokens.statusFont(statusCountLabel.getFont()));
 		received.addPropertyChangeListener("text", event ->
-				countLabel.setText(emailCountText(received.getText())));
+				statusCountLabel.setText(emailCountText(received.getText())));
 
 		javax.swing.JButton clear = controls.getClearAll().get();
 		clear.putClientProperty("JButton.buttonType", "toolBarButton");
 		clear.setFont(UiTokens.statusFont(clear.getFont()));
 
-		bar.add(folderIcon);
-		bar.add(storageLabel);
-		bar.add(pathLabel);
-		bar.add(openFolder);
+		statusBar.add(folderIcon);
+		statusBar.add(statusStorageLabel);
+		statusBar.add(statusPathLabel);
+		statusBar.add(openFolder);
 		if (!ArgsHandler.INSTANCE.memoryModeEnabled()) {
-			bar.add(changeFolder);
+			statusBar.add(changeFolder);
 		}
-		bar.add(countLabel, "gapbefore push");
-		bar.add(clear);
-		return bar;
+		statusBar.add(statusCountLabel, "gapbefore push");
+		statusBar.add(clear);
+		return statusBar;
 	}
 
 	private static String emailCountText(String raw) {
@@ -474,14 +493,12 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 		return button;
 	}
 
-	private static JPanel wrapLogs(javax.swing.JComponent logs) {
+	private JPanel wrapLogs(javax.swing.JComponent logs) {
 		JPanel panel = new JPanel(new BorderLayout());
 		panel.setBackground(UiTokens.SURFACE);
-		JLabel title = new JLabel(InboxText.get("folder.log"));
-		title.setFont(title.getFont().deriveFont(java.awt.Font.BOLD, 14f));
-		title.setBorder(javax.swing.BorderFactory.createEmptyBorder(12, 16, 8, 16));
-		title.setForeground(UiTokens.TEXT);
-		panel.add(title, BorderLayout.NORTH);
+		logTitle.setFont(logTitle.getFont().deriveFont(java.awt.Font.BOLD, 14f));
+		logTitle.setBorder(javax.swing.BorderFactory.createEmptyBorder(12, 16, 8, 16));
+		panel.add(logTitle, BorderLayout.NORTH);
 		panel.add(logs, BorderLayout.CENTER);
 		return panel;
 	}
@@ -565,7 +582,7 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 		} catch (IOException e) {
 			LOGGER.warn("Could not save the theme", e);
 		}
-		header.syncServerState();
+		applyTheme();
 	}
 
 	private void reprepare(InboxMessage message, boolean remote) {

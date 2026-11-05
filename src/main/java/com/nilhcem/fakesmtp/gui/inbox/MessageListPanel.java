@@ -38,8 +38,17 @@ public final class MessageListPanel extends JPanel {
 	private final DefaultListModel<InboxMessage> items = new DefaultListModel<InboxMessage>();
 	private final JList<InboxMessage> list = new JList<InboxMessage>(items);
 	private final JTextField search = new JTextField();
+	private final JComboBox<String> sort = new JComboBox<String>(new String[] {
+		InboxText.get("list.newest"),
+		InboxText.get("list.oldest"),
+		InboxText.get("list.sender.asc"),
+		InboxText.get("list.sender.desc"),
+		InboxText.get("list.subject.asc"),
+		InboxText.get("list.subject.desc")
+	});
 	private final JPanel cards = new JPanel(new CardLayout());
 	private final EmptyState empty = new EmptyState("", "");
+	private final JScrollPane listScroll;
 	private final MessageReaderPanel reader;
 	private boolean updating;
 	private Runnable refreshAction;
@@ -49,7 +58,6 @@ public final class MessageListPanel extends JPanel {
 		this.model = model;
 		this.reader = reader;
 		setOpaque(true);
-		setBackground(UiTokens.SURFACE);
 		setBorder(BorderFactory.createEmptyBorder(UiTokens.SPACE_MD, UiTokens.SPACE_MD, UiTokens.SPACE_SM, UiTokens.SPACE_SM));
 		search.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, InboxText.get("list.search"));
 		search.putClientProperty(FlatClientProperties.STYLE, "arc: 8");
@@ -69,13 +77,9 @@ public final class MessageListPanel extends JPanel {
 				model.setQuery(search.getText());
 			}
 		});
-		JComboBox<String> sort = new JComboBox<String>(new String[] {
-			InboxText.get("list.newest"),
-			InboxText.get("list.oldest"),
-			InboxText.get("list.subject"),
-			InboxText.get("list.sender"),
-			InboxText.get("list.flagged")
-		});
+		sort.setMaximumRowCount(8);
+		sort.setPreferredSize(new Dimension(UiTokens.SORT_WIDTH, UiTokens.CONTROL_HEIGHT));
+		sort.setToolTipText(InboxText.get("list.sort.tip"));
 		sort.setSelectedIndex(indexOf(model.getSortMode()));
 		sort.addActionListener(event -> model.setSortMode(modeAt(sort.getSelectedIndex())));
 		JButton refresh = new JButton(InboxText.get("list.refresh"));
@@ -85,34 +89,43 @@ public final class MessageListPanel extends JPanel {
 				refreshAction.run();
 			}
 		});
-		JPanel tools = new JPanel(new BorderLayout(6, 6));
+		JPanel tools = new JPanel(new BorderLayout(6, 0));
 		tools.setOpaque(false);
 		tools.add(search, BorderLayout.CENTER);
-		JPanel toolsRow = new JPanel(new BorderLayout(6, 0));
-		toolsRow.setOpaque(false);
-		toolsRow.add(sort, BorderLayout.CENTER);
-		toolsRow.add(refresh, BorderLayout.EAST);
-		tools.add(toolsRow, BorderLayout.SOUTH);
+		JPanel trailing = new JPanel(new BorderLayout(4, 0));
+		trailing.setOpaque(false);
+		trailing.add(sort, BorderLayout.CENTER);
+		trailing.add(refresh, BorderLayout.EAST);
+		tools.add(trailing, BorderLayout.EAST);
 		list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		list.setFixedCellHeight(UiTokens.LIST_ROW_HEIGHT);
 		list.setCellRenderer(new RowRenderer());
 		list.setBorder(null);
-		list.setBackground(UiTokens.SURFACE);
 		list.addListSelectionListener(event -> {
 			if (!event.getValueIsAdjusting()) {
 				onSelection();
 			}
 		});
-		JScrollPane listScroll = new JScrollPane(list);
+		listScroll = new JScrollPane(list);
 		listScroll.getVerticalScrollBar().setUnitIncrement(16);
-		listScroll.setBorder(UiTokens.bottomHairline());
-		listScroll.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, UiTokens.BORDER));
+		cards.setOpaque(false);
 		cards.add(listScroll, "list");
 		cards.add(empty, "empty");
 		setMinimumSize(new Dimension(220, 160));
 		add(tools, BorderLayout.NORTH);
 		add(cards, BorderLayout.CENTER);
+		applyTheme();
 		reload();
+	}
+
+	public void applyTheme() {
+		setBackground(UiTokens.LIST_BG);
+		list.setBackground(UiTokens.LIST_BG);
+		listScroll.setBackground(UiTokens.LIST_BG);
+		listScroll.getViewport().setBackground(UiTokens.LIST_BG);
+		listScroll.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, UiTokens.BORDER));
+		empty.applyTheme();
+		list.repaint();
 	}
 
 	public void setRefreshAction(Runnable refreshAction) {
@@ -208,14 +221,17 @@ public final class MessageListPanel extends JPanel {
 		if (mode == SortMode.OLDEST_FIRST) {
 			return 1;
 		}
-		if (mode == SortMode.SUBJECT) {
+		if (mode == SortMode.SENDER || mode == SortMode.SENDER_ASC) {
 			return 2;
 		}
-		if (mode == SortMode.SENDER) {
+		if (mode == SortMode.SENDER_DESC) {
 			return 3;
 		}
-		if (mode == SortMode.FLAGGED_FIRST) {
+		if (mode == SortMode.SUBJECT || mode == SortMode.SUBJECT_ASC) {
 			return 4;
+		}
+		if (mode == SortMode.SUBJECT_DESC) {
+			return 5;
 		}
 		return 0;
 	}
@@ -225,13 +241,16 @@ public final class MessageListPanel extends JPanel {
 			return SortMode.OLDEST_FIRST;
 		}
 		if (index == 2) {
-			return SortMode.SUBJECT;
+			return SortMode.SENDER_ASC;
 		}
 		if (index == 3) {
-			return SortMode.SENDER;
+			return SortMode.SENDER_DESC;
 		}
 		if (index == 4) {
-			return SortMode.FLAGGED_FIRST;
+			return SortMode.SUBJECT_ASC;
+		}
+		if (index == 5) {
+			return SortMode.SUBJECT_DESC;
 		}
 		return SortMode.NEWEST_FIRST;
 	}
@@ -251,7 +270,7 @@ public final class MessageListPanel extends JPanel {
 							BorderFactory.createMatteBorder(0, selected ? 3 : 0, 0, 0, UiTokens.ACCENT),
 							BorderFactory.createMatteBorder(0, 0, 1, 0, UiTokens.BORDER)),
 					BorderFactory.createEmptyBorder(7, selected ? 5 : 8, 7, 6)));
-			row.setBackground(selected ? UiTokens.SELECTED_BG : UiTokens.SURFACE);
+			row.setBackground(selected ? UiTokens.SELECTED_BG : UiTokens.LIST_BG);
 			row.setOpaque(true);
 
 			ParsedEmail parsed = message.getParsed();

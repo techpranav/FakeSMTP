@@ -27,6 +27,8 @@ public final class InboxSidebar extends JPanel {
 	private final JToggleButton all = item(InboxText.get("folder.all"));
 	private final JToggleButton attachments = item(InboxText.get("folder.attachments"));
 	private final JToggleButton log = item(InboxText.get("folder.log"));
+	private final JLabel mailSection = section(InboxText.get("nav.mail"));
+	private final JLabel developerSection = section(InboxText.get("nav.developer"));
 	private Runnable logSelected;
 	private Runnable folderSelected;
 	private boolean updating;
@@ -35,8 +37,6 @@ public final class InboxSidebar extends JPanel {
 		super(new MigLayout("insets 14 10 14 10, wrap 1, gapy 2", "[grow,fill]", "[]"));
 		this.model = model;
 		setOpaque(true);
-		setBackground(UiTokens.SIDEBAR_BG);
-		setBorder(UiTokens.rightHairline());
 		ButtonGroup group = new ButtonGroup();
 		group.add(inbox);
 		group.add(unread);
@@ -55,15 +55,29 @@ public final class InboxSidebar extends JPanel {
 				logSelected.run();
 			}
 		});
-		add(section(InboxText.get("nav.mail")));
+		add(mailSection);
 		add(inbox);
 		add(unread);
 		add(flagged);
 		add(all);
 		add(attachments);
-		add(section(InboxText.get("nav.developer")), "gaptop 14");
+		add(developerSection, "gaptop 14");
 		add(log);
+		applyTheme();
 		refreshCounts();
+	}
+
+	public void applyTheme() {
+		setBackground(UiTokens.SIDEBAR_BG);
+		setBorder(UiTokens.rightHairline());
+		styleSection(mailSection);
+		styleSection(developerSection);
+		styleItem(inbox);
+		styleItem(unread);
+		styleItem(flagged);
+		styleItem(all);
+		styleItem(attachments);
+		styleItem(log);
 	}
 
 	public void setLogSelected(Runnable logSelected) {
@@ -101,21 +115,29 @@ public final class InboxSidebar extends JPanel {
 
 	private static JLabel section(String text) {
 		JLabel label = new JLabel(text.toUpperCase(java.util.Locale.ROOT));
-		label.setForeground(UiTokens.TEXT_SECONDARY);
 		label.setFont(label.getFont().deriveFont(Font.BOLD, 10f));
 		label.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 8, 4, 0));
 		return label;
+	}
+
+	private static void styleSection(JLabel label) {
+		label.setForeground(UiTokens.TEXT_MUTED);
 	}
 
 	private static JToggleButton item(String text) {
 		JToggleButton button = new JToggleButton(text);
 		button.setHorizontalAlignment(JToggleButton.LEFT);
 		button.setFont(button.getFont().deriveFont(Font.PLAIN, 13f));
+		return button;
+	}
+
+	private static void styleItem(JToggleButton button) {
+		button.setForeground(UiTokens.TEXT);
 		button.putClientProperty(FlatClientProperties.STYLE,
 				"arc: 8; focusWidth: 0; background: null; borderWidth: 0;"
-						+ "selectedBackground: #EAF2FF; selectedForeground: #1B4F9C;"
-						+ "hoverBackground: #EEF1F5");
-		return button;
+						+ "selectedBackground: " + UiTokens.toHex(UiTokens.SELECTED_BG) + ";"
+						+ "selectedForeground: " + UiTokens.toHex(UiTokens.SELECTED_FG) + ";"
+						+ "hoverBackground: " + UiTokens.toHex(UiTokens.HOVER_BG));
 	}
 
 	private static String label(String name, int count) {

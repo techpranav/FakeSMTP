@@ -31,6 +31,9 @@ public enum UISettings {
 
 	public static final String THEME = "ui.theme";
 	public static final String NOTIFICATIONS_ENABLED = "notifications.enabled";
+	public static final String NOTIFICATIONS_DESKTOP = "notifications.desktop";
+	public static final String NOTIFICATIONS_INAPP = "notifications.inapp";
+	public static final String NOTIFICATIONS_TOAST_SECONDS = "notifications.toast.seconds";
 	public static final String NOTIFICATIONS_PREVIEW = "notifications.preview";
 	public static final String NOTIFICATIONS_SOUND = "notifications.sound";
 	public static final String NOTIFICATIONS_EVERY_EMAIL = "notifications.every.email";
@@ -55,6 +58,9 @@ public enum UISettings {
 	UISettings() {
 		defaults.setProperty(THEME, THEME_LIGHT);
 		defaults.setProperty(NOTIFICATIONS_ENABLED, "true");
+		defaults.setProperty(NOTIFICATIONS_DESKTOP, "true");
+		defaults.setProperty(NOTIFICATIONS_INAPP, "true");
+		defaults.setProperty(NOTIFICATIONS_TOAST_SECONDS, "8");
 		defaults.setProperty(NOTIFICATIONS_PREVIEW, "true");
 		defaults.setProperty(NOTIFICATIONS_SOUND, "false");
 		defaults.setProperty(NOTIFICATIONS_EVERY_EMAIL, "true");
