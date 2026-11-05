@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Date;
 
+import org.apache.poi.hsmf.MAPIMessage;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -48,11 +49,27 @@ public class EmailExportTest {
 		assertTrue(htmlAttached);
 		assertEquals(1, loaded.getRecipients(ch.astorm.jotlmsg.OutlookMessageRecipient.Type.TO).size());
 		assertEquals(1, loaded.getRecipients(ch.astorm.jotlmsg.OutlookMessageRecipient.Type.CC).size());
-		org.apache.poi.hsmf.MAPIMessage poi = new org.apache.poi.hsmf.MAPIMessage(msg.getAbsolutePath());
+		MAPIMessage poi = new MAPIMessage(msg.getAbsolutePath());
 		assertTrue(poi.getDisplayFrom().toLowerCase().contains("tester")
 				|| poi.getDisplayFrom().toLowerCase().contains("mailbox"));
 		assertTrue(poi.getDisplayTo().toLowerCase().contains("developer"));
 		assertTrue(poi.getDisplayCC().toLowerCase().contains("qa"));
+	}
+
+	@Test
+	public void overdueApprovalMsgOpensWithFullHeaders() throws Exception {
+		String raw = TestEmailFactory.buildOverdueRaw();
+		ParsedEmail parsed = EmailParser.parse(raw, "Enovia@technia.com",
+				"KTApprove02@kla-tencor.com", new Date(), null, false);
+		InboxMessage message = message(parsed, raw);
+		File msg = folder.newFile("overdue.msg");
+		EmailExport.saveAsMsg(message, msg);
+		MAPIMessage poi = new MAPIMessage(msg.getAbsolutePath());
+		assertTrue(poi.getSubject().contains("Overdue"));
+		assertTrue(poi.getDisplayFrom().toLowerCase().contains("enovia"));
+		assertTrue(poi.getDisplayTo().toLowerCase().contains("approver"));
+		assertTrue(poi.getDisplayCC().toLowerCase().contains("derek")
+				|| poi.getDisplayCC().toLowerCase().contains("manager"));
 	}
 
 	@Test
@@ -80,6 +97,23 @@ public class EmailExportTest {
 		String base = EmailExport.suggestedFileBase(message, "MailBox_Email");
 		assertTrue(base.startsWith("MailBox_Email_"));
 		assertTrue(base.matches(".*_\\d{8}_\\d{6}$"));
+	}
+
+	@Test
+	public void overdueScreenshotIncludesTableAndCharts() throws Exception {
+		String raw = TestEmailFactory.buildOverdueRaw();
+		ParsedEmail parsed = EmailParser.parse(raw, "Enovia@technia.com",
+				"KTApprove02@kla-tencor.com", new Date(), null, false);
+		String page = ScreenshotDocument.compose(parsed);
+		assertTrue(page.contains("From:"));
+		assertTrue(page.contains("Enovia@technia.com"));
+		assertTrue(page.contains("To:"));
+		assertTrue(page.contains("KTApprove02@kla-tencor.com"));
+		assertTrue(page.contains("CC:"));
+		assertTrue(page.contains("E00827"));
+		assertTrue(page.contains("Assignment distribution"));
+		java.awt.image.BufferedImage image = EmailScreenshot.capture(parsed);
+		assertTrue("overdue full capture height=" + image.getHeight(), image.getHeight() > 800);
 	}
 
 	@Test

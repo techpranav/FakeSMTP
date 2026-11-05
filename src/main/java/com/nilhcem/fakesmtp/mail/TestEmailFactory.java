@@ -2,6 +2,7 @@ package com.nilhcem.fakesmtp.mail;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Base64;
@@ -9,8 +10,10 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 
+import org.apache.commons.io.IOUtils;
+
 /**
- * Builds a sample multipart HTML email with links, formatting, and attachments.
+ * Builds sample multipart HTML emails for inbox preview and export validation.
  *
  * @since 2.1
  */
@@ -28,6 +31,24 @@ public final class TestEmailFactory {
 
 	public static InputStream createSampleMessage() {
 		return new ByteArrayInputStream(buildRaw().getBytes(StandardCharsets.UTF_8));
+	}
+
+	/**
+	 * Real-world overdue approval mail (ENOVIA-style HTML table + SVG charts).
+	 */
+	public static InputStream createOverdueApprovalMessage() {
+		return new ByteArrayInputStream(buildOverdueRaw().getBytes(StandardCharsets.UTF_8));
+	}
+
+	public static String buildOverdueRaw() {
+		try (InputStream in = TestEmailFactory.class.getResourceAsStream("/emails/overdue-approval.eml")) {
+			if (in == null) {
+				throw new IllegalStateException("Missing classpath resource /emails/overdue-approval.eml");
+			}
+			return IOUtils.toString(in, StandardCharsets.UTF_8);
+		} catch (IOException e) {
+			throw new IllegalStateException("Could not load overdue-approval.eml", e);
+		}
 	}
 
 	public static String buildRaw() {
