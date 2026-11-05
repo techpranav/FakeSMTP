@@ -1,7 +1,8 @@
 # Unified License Manager — MailBox
 
-MailBox is integrated with ULM through the **zero-code Java Agent** (no application-source changes for
-startup enforcement).
+MailBox enforces licensing **in-process** with the ULM `license-sdk` at startup
+(`com.nilhcem.fakesmtp.license.MailBoxLicenseGate`). The shipped JAR does not contain a
+`.lic` file; licenses are supplied separately.
 
 See **[LICENSING.md](LICENSING.md)** for product code `MAILBOX`, build, launch, and troubleshooting.
 
@@ -10,9 +11,10 @@ See **[LICENSING.md](LICENSING.md)** for product code `MAILBOX`, build, launch, 
 | Item | Value |
 |---|---|
 | Product code | `MAILBOX` |
-| Integration | `ulm-agent.jar` + sidecar launchers |
-| SDK feature API | Optional; not required for CORE startup protection |
+| Primary integration | Embedded `license-sdk` + startup gate (GUI license picker) |
+| Optional packaging | `ulm-agent.jar` sidecar via `mvn -Pulm package` |
 | Private keys in this repo | Never |
+| License file in JAR | Never |
 
 Historical note: the Java package namespace remains `com.nilhcem.fakesmtp` for compatibility. ULM does
 not use the Java package name as the product code.

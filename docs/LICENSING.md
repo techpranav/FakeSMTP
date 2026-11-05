@@ -2,13 +2,17 @@
 
 MailBox uses **Unified License Manager (ULM) 1.1.0** for software licensing.
 
+The application JAR is distributed **without** a license file. Licenses are issued and
+delivered separately. On startup MailBox validates a ULM `MAILBOX` license; without a
+valid license the application will not start SMTP or open the UI.
+
 | Property | Value |
 |---|---|
 | Product code | `MAILBOX` |
 | Product name | MailBox |
 | Categories | `INTERNAL` (expiry optional / perpetual) and `CUSTOMER` (expiry mandatory) |
 | Features | `CORE`, `HTML_EMAIL_RENDERING`, `DESKTOP_NOTIFICATIONS`, `ATTACHMENT_INSPECTION` |
-| Validation | Offline Ed25519 signature verification via the ULM Java Agent |
+| Validation | Offline Ed25519 via embedded `license-sdk` (startup gate in `MailBoxLicenseGate`) |
 | Machine binding | None |
 | Activation server | None |
 
@@ -17,30 +21,32 @@ ULM product identity is independent of the Java package name.
 
 ## Runtime requirement
 
-MailBox application bytecode stays **Java 8**, but the ULM agent/SDK require **Java 17+**.
-Launch the licensed distribution with JDK 17 or newer.
+MailBox requires **Java 17+** (ULM `license-sdk`).
 
-## Supported launch path
+## Startup behaviour
 
-```
-target/ulm-dist/
-  MailBox.jar
-  ulm/ulm-agent.jar
-  ulm/ulm.properties
-  ulm/trusted-keys.properties
-  run.bat
-  run.sh
-```
+1. On load, MailBox searches for a valid `MAILBOX` license
+   (`-Dulm.license.file`, search dirs, then `%APPDATA%\UnifiedLicensing\licenses\MAILBOX.lic`).
+2. **GUI mode:** if the license is missing, invalid, or expired, a dialog offers
+   **Select license…** (copies a chosen `.lic` into the default license folder) or **Exit**.
+3. **Background mode (`-s`) / headless:** prints a clear error to stderr and exits with code `3`
+   (no interactive picker). Pass `-Dulm.license.file=<path>` before starting.
 
-Start with `run.bat` / `./run.sh`. Starting `MailBox.jar` without `-javaagent` bypasses ULM and is
-**not** the supported distribution path (see ULM security limitations).
+Public verification keys are embedded from `src/main/ulm/trusted-keys.properties` into
+`META-INF/ulm/` at package time. Private keys and `.lic` files are never packaged into the JAR.
 
 ## Build
 
 ```bat
 rem 1. Export public keys from the ULM generator into:
 rem    src\main\ulm\trusted-keys.properties
-rem 2. Package with the ULM profile (agent jar from the ULM build):
+rem 2. Package (license-sdk is a normal dependency; .lic is NOT included):
+mvn package
+```
+
+Optional agent sidecar distribution (in addition to the in-app gate):
+
+```bat
 set ulm.agent.jar=..\unifiedlicensemanager\license-agent\target\ulm-agent.jar
 mvn -Pulm package
 ```
@@ -59,15 +65,17 @@ Overrides: `-Dulm.license.file=...` or `-Dulm.license.dir=...`
 2. Select product **MailBox** (`MAILBOX`).
 3. Choose INTERNAL or CUSTOMER; set expiry for CUSTOMER.
 4. Generate and validate the `.lic` file.
-5. Distribute the file to the licensee (for example via SharePoint). Never distribute private keys.
+5. Distribute the JAR and the `.lic` file separately (for example via SharePoint).
+   Never distribute private keys.
 
 ## Troubleshooting
 
 | Symptom | Check |
 |---|---|
-| Exit code 3 at startup | Missing/invalid license; read the agent message |
+| “License not available” dialog / exit code 3 | Missing `.lic`; select a file or place `MAILBOX.lic` in the default folder |
+| “License expired” | Request a renewal from the administrator |
 | `WRONG_PRODUCT` | License is for MQLX or historical FAKESMTP — need a MAILBOX license |
 | `INVALID_SIGNATURE` | Tampered file or wrong public key embedded in the distribution |
-| `EXPIRED` | Request a renewal from the administrator |
+| Trusted-key / validation error | Ensure `src/main/ulm/trusted-keys.properties` was present at package time |
 
 Old `FAKESMTP` licenses are not accepted by MailBox.

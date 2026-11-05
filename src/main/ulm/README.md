@@ -2,6 +2,7 @@
 
 Place `trusted-keys.properties` here (exported from the ULM License Generator).
 
-- Public keys only.
-- Never place `*.ulmkey`, passphrases, or the generator database in this folder.
-- The file is required for `mvn -Pulm package` and `scripts\package-with-ulm.cmd`.
+- Public keys only — never place `*.ulmkey`, passphrases, generator databases, or `.lic` files here.
+- At `mvn package` time the file is copied into the JAR as `META-INF/ulm/trusted-keys.properties`
+  so the in-app license gate can verify signatures offline.
+- The same file is required for the optional `mvn -Pulm package` agent distribution.
