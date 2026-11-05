@@ -135,11 +135,13 @@ public final class MailBoxLicenseGate {
 			case MISSING_LICENSE:
 				return "License not available.";
 			case EXPIRED:
-				return "License expired.";
+				return "License expired. Select a new license to continue.";
 			case NOT_YET_VALID:
 				return "License not yet valid.";
 			case WRONG_PRODUCT:
 				return "License is for a different product.";
+			case MACHINE_MISMATCH:
+				return "License is bound to a different machine.";
 			case INVALID_SIGNATURE:
 				return "License signature is invalid.";
 			case INVALID_FORMAT:
@@ -148,6 +150,8 @@ public final class MailBoxLicenseGate {
 				return "License format is not supported.";
 			case MISSING_ENTITLEMENT:
 				return "License is missing a required feature.";
+			case TAMPERED:
+				return "Application integrity check failed.";
 			case VALIDATION_ERROR:
 				return "License could not be validated.";
 			default:
