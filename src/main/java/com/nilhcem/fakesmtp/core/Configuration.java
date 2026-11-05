@@ -19,7 +19,11 @@ public enum Configuration {
 	INSTANCE;
 
 	private static final String CONFIG_FILE = "/configuration.properties";
-	private static final String USER_CONFIG_FILE = ".fakeSMTP.properties";
+	/** Preferred MailBox user settings file. */
+	private static final String USER_CONFIG_FILE = ".mailbox.properties";
+	/** Legacy FakeSMTP settings file — still loaded for backward compatibility. */
+	private static final String LEGACY_USER_CONFIG_FILE = ".fakeSMTP.properties";
+	private final Properties defaults = new Properties();
 	private final Properties config = new Properties();
 
 	/**
@@ -28,11 +32,11 @@ public enum Configuration {
 	Configuration() {
 		InputStream in = getClass().getResourceAsStream(CONFIG_FILE);
 		try {
-			// Load defaults settings
-			config.load(in);
+			defaults.load(in);
 			in.close();
-			// and override them from user settings
+			config.putAll(defaults);
 			loadFromUserProfile();
+			restoreBranding();
 		} catch (IOException e) {
 			LoggerFactory.getLogger(Configuration.class).error("", e);
 		}
@@ -68,16 +72,25 @@ public enum Configuration {
 	 * @throws IOException
 	 */
 	public void saveToFile(File file) throws IOException {
+		Properties user = new Properties();
+		// Local array: enum INSTANCE initializes before other static fields.
+		String[] userKeys = { "smtp.default.port", "emails.default.dir", "application.tray.use" };
+		for (String key : userKeys) {
+			String value = config.getProperty(key);
+			if (value != null) {
+				user.setProperty(key, value);
+			}
+		}
 		FileOutputStream fos = new FileOutputStream(file);
 		try {
-			config.store(fos, "Last user settings");
+			user.store(fos, "MailBox user settings");
 		} finally {
 			IOUtils.closeQuietly(fos);
 		}
 	}
 
 	/**
-	 * Saves configuration to the {@code .fakesmtp.properties} file in user profile directory.
+	 * Saves configuration to {@code .mailbox.properties} in the user profile directory.
 	 * Calls {@link Configuration#saveToFile(java.io.File)}.
 	 *
 	 * @throws IOException
@@ -101,18 +114,45 @@ public enum Configuration {
 			} finally {
 				IOUtils.closeQuietly(fis);
 			}
+			restoreBranding();
 		}
 		return INSTANCE;
 	}
 
 	/**
-	 * Loads configuration from the .fakesmtp.properties file in user profile directory.
-	 * Calls {@link Configuration#loadFromFile(java.io.File)}.
+	 * Loads configuration from the user profile.
+	 * <p>
+	 * Loads the legacy {@code .fakeSMTP.properties} first (if present), then
+	 * {@code .mailbox.properties} so newer MailBox settings override without losing old installs.
+	 * Branding keys are always restored from the packaged defaults afterward.
+	 * </p>
 	 *
 	 * @return INSTANCE.
 	 * @throws IOException
 	 */
 	public Configuration loadFromUserProfile() throws IOException {
-		return loadFromFile(new File(System.getProperty("user.home"), USER_CONFIG_FILE));
+		String home = System.getProperty("user.home");
+		loadFromFile(new File(home, LEGACY_USER_CONFIG_FILE));
+		loadFromFile(new File(home, USER_CONFIG_FILE));
+		restoreBranding();
+		return INSTANCE;
+	}
+
+	private void restoreBranding() {
+		// Local array: enum INSTANCE initializes before other static fields.
+		String[] brandingKeys = {
+			"application.name",
+			"application.title",
+			"application.tagline",
+			"application.description",
+			"application.product.code",
+			"application.icon.path"
+		};
+		for (String key : brandingKeys) {
+			String value = defaults.getProperty(key);
+			if (value != null) {
+				config.setProperty(key, value);
+			}
+		}
 	}
 }

@@ -22,6 +22,7 @@ public enum I18n {
 	private static final String RESOURCE_FILE = "i18n/messages";
 	private final Logger logger = LoggerFactory.getLogger(I18n.class);
 	private final ResourceBundle resources;
+	private final ResourceBundle fallback;
 
 	/**
 	 * Initializes resource bundle with the JVM's default locale.
@@ -40,12 +41,21 @@ public enum I18n {
 			bundle = ResourceBundle.getBundle(I18n.RESOURCE_FILE, Locale.US);
 		}
 		resources = bundle;
+
+		ResourceBundle english;
+		try {
+			english = ResourceBundle.getBundle(I18n.RESOURCE_FILE, Locale.US);
+		} catch (MissingResourceException mre) {
+			english = bundle;
+		}
+		fallback = english;
 	}
 
 	/**
 	 * Returns the resource for the key passed in parameters.
 	 * <p>
-	 * If the key is not found, returns an empty string.
+	 * If the key is not translated for the current locale, the English text is returned.
+	 * If the key is not found at all, returns an empty string.
 	 * </p>
 	 *
 	 * @param key a String representing the key we want to get the resource from.
@@ -55,8 +65,12 @@ public enum I18n {
 		try {
 			return resources.getString(key);
 		} catch (MissingResourceException e) {
-			logger.error("{}", e.getMessage());
-			return "";
+			try {
+				return fallback.getString(key);
+			} catch (MissingResourceException notFound) {
+				logger.error("{}", notFound.getMessage());
+				return "";
+			}
 		}
 	}
 }

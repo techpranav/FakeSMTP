@@ -7,10 +7,14 @@ import java.util.Observer;
 
 import javax.swing.JButton;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 
 import com.nilhcem.fakesmtp.core.Configuration;
 import com.nilhcem.fakesmtp.core.I18n;
-import com.nilhcem.fakesmtp.core.exception.*;
+import com.nilhcem.fakesmtp.core.exception.BindPortException;
+import com.nilhcem.fakesmtp.core.exception.InvalidHostException;
+import com.nilhcem.fakesmtp.core.exception.InvalidPortException;
+import com.nilhcem.fakesmtp.core.exception.OutOfRangePortException;
 import com.nilhcem.fakesmtp.model.UIModel;
 
 /**
@@ -23,6 +27,10 @@ public final class StartServerButton extends Observable implements Observer {
 	private final I18n i18n = I18n.INSTANCE;
 
 	private final JButton button = new JButton(i18n.get("startsrv.start"));
+	private final JButton stopButton = new JButton(i18n.get("startsrv.stop"));
+	private boolean startFailed;
+	private boolean busy;
+	private Runnable beforeToggle;
 
 	/**
 	 * Creates a start button to start the SMTP server.
@@ -37,6 +45,13 @@ public final class StartServerButton extends Observable implements Observer {
 				toggleButton();
 			}
 		});
+		stopButton.setEnabled(false);
+		stopButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				toggleButton();
+			}
+		});
 	}
 
 	/**
@@ -44,25 +59,63 @@ public final class StartServerButton extends Observable implements Observer {
 	 *
 	 * @see PortTextField
 	 */
+	public void setBeforeToggle(Runnable beforeToggle) {
+		this.beforeToggle = beforeToggle;
+	}
+
 	public void toggleButton() {
+		if (busy) {
+			return;
+		}
+		busy = true;
+		button.setEnabled(false);
+		stopButton.setEnabled(false);
+		if (beforeToggle != null) {
+			beforeToggle.run();
+		}
+		startFailed = false;
+		Thread worker = new Thread(this::runToggle, "fakesmtp-server-toggle");
+		worker.setDaemon(true);
+		worker.start();
+	}
+
+	private void runToggle() {
+		Exception error = null;
 		try {
 			UIModel.INSTANCE.toggleButton();
-		} catch (InvalidHostException ihe) {
-			displayError(String.format(i18n.get("startsrv.err.invalidHost"), ihe.getHost()));
-		} catch (InvalidPortException ipe) {
+		} catch (Exception e) {
+			error = e;
+		}
+		final Exception finalError = error;
+		SwingUtilities.invokeLater(() -> finishToggle(finalError));
+	}
+
+	private void finishToggle(Exception error) {
+		busy = false;
+		if (error instanceof InvalidHostException) {
+			startFailed = true;
+			displayError(String.format(i18n.get("startsrv.err.invalidHost"),
+					((InvalidHostException) error).getHost()));
+		} else if (error instanceof InvalidPortException) {
+			startFailed = true;
 			displayError(String.format(i18n.get("startsrv.err.invalidPort")));
-		} catch (BindPortException bpe) {
-			displayError(String.format(i18n.get("startsrv.err.bound"), bpe.getPort()));
-		} catch (OutOfRangePortException orpe) {
-			displayError(String.format(i18n.get("startsrv.err.range"), orpe.getPort()));
-		} catch (RuntimeException re) {
-			displayError(String.format(i18n.get("startsrv.err.default"), re.getMessage()));
+		} else if (error instanceof BindPortException) {
+			startFailed = true;
+			displayError(String.format(i18n.get("startsrv.err.bound"),
+					((BindPortException) error).getPort()));
+		} else if (error instanceof OutOfRangePortException) {
+			startFailed = true;
+			displayError(String.format(i18n.get("startsrv.err.range"),
+					((OutOfRangePortException) error).getPort()));
+		} else if (error != null) {
+			startFailed = true;
+			displayError(String.format(i18n.get("startsrv.err.default"), error.getMessage()));
 		}
 
-		if (UIModel.INSTANCE.isStarted()) {
-			button.setText(i18n.get("startsrv.started"));
-			button.setEnabled(false);
-		}
+		boolean running = UIModel.INSTANCE.isStarted();
+		button.setText(i18n.get("startsrv.start"));
+		button.setEnabled(!running);
+		stopButton.setEnabled(running);
 		setChanged();
 		notifyObservers();
 	}
@@ -74,6 +127,20 @@ public final class StartServerButton extends Observable implements Observer {
 	 */
 	public JButton get() {
 		return button;
+	}
+
+	/**
+	 * @return the button that stops a running server.
+	 */
+	public JButton getStopButton() {
+		return stopButton;
+	}
+
+	/**
+	 * @return {@code true} when the last attempt to start the server failed.
+	 */
+	public boolean isStartFailed() {
+		return startFailed;
 	}
 
 	/**

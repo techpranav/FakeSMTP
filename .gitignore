@@ -18,3 +18,9 @@ target/*
 # Received emails folder
 received-emails/*
 emails-recus/*
+
+# ULM — never commit signing material or generated licenses
+src/main/ulm/trusted-keys.properties
+*.ulmkey
+*.lic
+target/ulm-dist/

@@ -3,18 +3,18 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.nilhcem.fakesmtp</groupId>
-	<artifactId>fakesmtp</artifactId>
+	<artifactId>mailbox</artifactId>
 	<version>2.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
-	<name>Fake SMTP</name>
-	<description>Dummy SMTP server for testing</description>
-	<url>https://github.com/Nilhcem/FakeSMTP</url>
+	<name>MailBox</name>
+	<description>MailBox — Local Email Testing &amp; Inspection Studio. Capture. Preview. Inspect. Originated from the FakeSMTP project by Nilhcem.</description>
+	<url>https://github.com/techpranav/MailBox</url>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
-		<docker.image>fakesmtp</docker.image>
+		<docker.image>mailbox</docker.image>
 	</properties>
 
 	<dependencies>
@@ -65,6 +65,41 @@
 		    <version>1.4</version>
 		</dependency>
 
+		<!-- FlatLaf: modern look and feel for Swing (light and dark themes) -->
+		<dependency>
+			<groupId>com.formdev</groupId>
+			<artifactId>flatlaf</artifactId>
+			<version>3.5.4</version>
+		</dependency>
+
+		<!-- Flying Saucer: pure Java XHTML/CSS renderer, used to display HTML emails -->
+		<dependency>
+			<groupId>org.xhtmlrenderer</groupId>
+			<artifactId>flying-saucer-core</artifactId>
+			<version>9.1.22</version>
+		</dependency>
+
+		<!-- jsoup: parses and sanitizes real-world HTML before rendering -->
+		<dependency>
+			<groupId>org.jsoup</groupId>
+			<artifactId>jsoup</artifactId>
+			<version>1.17.2</version>
+		</dependency>
+
+		<!-- jsvg: rasterizes SVG charts embedded in HTML emails -->
+		<dependency>
+			<groupId>com.github.weisj</groupId>
+			<artifactId>jsvg</artifactId>
+			<version>1.7.2</version>
+		</dependency>
+
+		<!-- jotlmsg: write Outlook .msg files (Java 8-compatible 1.x line) -->
+		<dependency>
+			<groupId>ch.astorm</groupId>
+			<artifactId>jotlmsg</artifactId>
+			<version>1.8</version>
+		</dependency>
+
 		<!-- Integration test -->
 		<dependency>
 			<groupId>junit</groupId>
@@ -81,17 +116,28 @@
 	</dependencies>
 
 	<build>
-		<finalName>fakeSMTP-${project.version}</finalName>
+		<finalName>MailBox</finalName>
 
 		<plugins>
-			<!-- Use JDK 1.6 -->
+			<!-- Java 8 bytecode so the jar runs on Java 8 and every newer JDK -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.3</version>
+				<version>3.13.0</version>
 				<configuration>
-					<source>1.6</source>
-					<target>1.6</target>
+					<release>8</release>
+				</configuration>
+			</plugin>
+
+			<!-- Unit tests run headless, as they would on a CI server -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>3.2.5</version>
+				<configuration>
+					<systemPropertyVariables>
+						<java.awt.headless>true</java.awt.headless>
+					</systemPropertyVariables>
 				</configuration>
 			</plugin>
 
@@ -100,6 +146,12 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-failsafe-plugin</artifactId>
 				<version>2.18.1</version>
+				<configuration>
+					<systemPropertyVariables>
+						<java.awt.headless>true</java.awt.headless>
+						<mailbox.jar>${project.build.directory}/${project.build.finalName}.jar</mailbox.jar>
+					</systemPropertyVariables>
+				</configuration>
 				<executions>
 					<execution>
 						<id>integration-test</id>
@@ -343,4 +395,44 @@
 			<url>LICENSE.txt</url>
 		</license>
 	</licenses>
+
+	<!--
+	  ULM zero-code licensing (optional profile).
+	  Prerequisites: Java 17+ to *run* the packaged distribution (bytecode stays Java 8).
+	  Place public keys at src/main/ulm/trusted-keys.properties (never private keys), then:
+	    mvn -Pulm package
+	  Output: target/ulm-dist/ with MailBox.jar, ulm agent, and run.bat / run.sh.
+	-->
+	<profiles>
+		<profile>
+			<id>ulm</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>com.ulm</groupId>
+						<artifactId>license-maven-plugin</artifactId>
+						<version>1.1.0</version>
+						<configuration>
+							<productCode>MAILBOX</productCode>
+							<trustedKeysFile>${project.basedir}/src/main/ulm/trusted-keys.properties</trustedKeysFile>
+							<applicationJar>${project.build.directory}/${project.build.finalName}.jar</applicationJar>
+							<outputDirectory>${project.build.directory}/ulm-dist</outputDirectory>
+							<agentJar>${ulm.agent.jar}</agentJar>
+							<force>true</force>
+						</configuration>
+						<executions>
+							<execution>
+								<id>ulm-package</id>
+								<phase>package</phase>
+								<goals>
+									<goal>integrate</goal>
+									<goal>package</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>

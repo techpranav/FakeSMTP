@@ -2,6 +2,7 @@ package com.nilhcem.fakesmtp.gui;
 
 import com.nilhcem.fakesmtp.core.ArgsHandler;
 import com.nilhcem.fakesmtp.core.Configuration;
+import com.nilhcem.fakesmtp.core.UISettings;
 import com.nilhcem.fakesmtp.core.exception.UncaughtExceptionHandler;
 import com.nilhcem.fakesmtp.gui.listeners.MainWindowListener;
 import com.nilhcem.fakesmtp.model.UIModel;
@@ -10,6 +11,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.swing.JFrame;
 import java.awt.Dimension;
+import java.awt.Frame;
+import java.awt.GraphicsEnvironment;
 import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.event.WindowAdapter;
@@ -28,8 +31,8 @@ public final class MainFrame {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MainFrame.class);
 
 	private final JFrame mainFrame = new JFrame(Configuration.INSTANCE.get("application.title"));
-	private final MenuBar menu = new MenuBar(this);
-	private final MainPanel panel = new MainPanel(menu);
+	private final MenuBar menu;
+	private final MainPanel panel;
 
 	/**
 	 * Creates the main window and makes it visible.
@@ -49,6 +52,8 @@ public final class MainFrame {
 	 * </p>
 	 */
 	public MainFrame() {
+		menu = new MenuBar(this);
+		panel = new MainPanel(menu, mainFrame);
 		((UncaughtExceptionHandler) Thread.getDefaultUncaughtExceptionHandler()).setParentComponent(panel.get());
 		Dimension frameSize = new Dimension(Integer.parseInt(Configuration.INSTANCE.get("application.min.width")),
 			Integer.parseInt(Configuration.INSTANCE.get("application.min.height")));
@@ -59,6 +64,7 @@ public final class MainFrame {
 		MainWindowListener windowListener = new MainWindowListener(this);
 
 		mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		mainFrame.setTitle(Configuration.INSTANCE.get("application.title"));
 		mainFrame.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent e) {
@@ -67,12 +73,11 @@ public final class MainFrame {
 		});
 
 		mainFrame.addWindowStateListener(windowListener); // used for TrayIcon
-		mainFrame.setSize(frameSize);
 		mainFrame.setMinimumSize(frameSize);
+		restoreWindow(frameSize);
 
 		mainFrame.setJMenuBar(menu.get());
 		mainFrame.getContentPane().add(panel.get());
-		mainFrame.setLocationRelativeTo(null); // Center main frame
 		mainFrame.setIconImage(iconImage);
 
 		// Add shutdown hook to stop server if enabled
@@ -105,9 +110,11 @@ public final class MainFrame {
 
 	public void close() {
 		LOGGER.debug("Closing the application and saving the configuration");
+		panel.shutdown();
 
 		Configuration.INSTANCE.set("smtp.default.port", panel.getPortText().get().getText());
 		Configuration.INSTANCE.set("emails.default.dir", panel.getSaveMsgTextField().get().getText());
+		saveWindow();
 
 		try {
 			Configuration.INSTANCE.saveToUserProfile();
@@ -120,5 +127,57 @@ public final class MainFrame {
 		}
 
 		mainFrame.dispose();
+	}
+
+	private void restoreWindow(Dimension minimum) {
+		UISettings settings = UISettings.INSTANCE;
+		int width = settings.getInt(UISettings.WINDOW_WIDTH, minimum.width);
+		int height = settings.getInt(UISettings.WINDOW_HEIGHT, minimum.height);
+		if (width < minimum.width) {
+			width = minimum.width;
+		}
+		if (height < minimum.height) {
+			height = minimum.height;
+		}
+		mainFrame.setSize(width, height);
+		int x = settings.getInt(UISettings.WINDOW_X, Integer.MIN_VALUE);
+		int y = settings.getInt(UISettings.WINDOW_Y, Integer.MIN_VALUE);
+		if (isOnScreen(x, y)) {
+			mainFrame.setLocation(x, y);
+		} else {
+			mainFrame.setLocationRelativeTo(null);
+		}
+		if (settings.getBoolean(UISettings.WINDOW_MAXIMIZED)) {
+			mainFrame.setExtendedState(Frame.MAXIMIZED_BOTH);
+		}
+	}
+
+	private void saveWindow() {
+		UISettings settings = UISettings.INSTANCE;
+		boolean maximized = (mainFrame.getExtendedState() & Frame.MAXIMIZED_BOTH) == Frame.MAXIMIZED_BOTH;
+		settings.setBoolean(UISettings.WINDOW_MAXIMIZED, maximized);
+		if (!maximized) {
+			settings.setInt(UISettings.WINDOW_X, mainFrame.getX());
+			settings.setInt(UISettings.WINDOW_Y, mainFrame.getY());
+			settings.setInt(UISettings.WINDOW_WIDTH, mainFrame.getWidth());
+			settings.setInt(UISettings.WINDOW_HEIGHT, mainFrame.getHeight());
+		}
+		try {
+			settings.save();
+		} catch (IOException ex) {
+			LOGGER.error("Could not save window settings", ex);
+		}
+	}
+
+	private static boolean isOnScreen(int x, int y) {
+		if (x == Integer.MIN_VALUE || y == Integer.MIN_VALUE) {
+			return false;
+		}
+		for (java.awt.GraphicsDevice device : GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()) {
+			if (device.getDefaultConfiguration().getBounds().contains(x, y)) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

@@ -11,6 +11,11 @@ import com.nilhcem.fakesmtp.core.exception.OutOfRangePortException;
 
 /**
  * Starts and stops the SMTP server.
+ * <p>
+ * A SubEthaSMTP {@code SMTPServer} can only be started once, so a new instance is created
+ * when the server is started again after having been stopped. The same {@link MailSaver}
+ * and {@link MailListener} are shared by every instance.
+ * </p>
  *
  * @author Nilhcem
  * @since 1.0
@@ -21,7 +26,8 @@ public enum SMTPServerHandler {
 	private static final Logger LOGGER = LoggerFactory.getLogger(SMTPServerHandler.class);
 	private final MailSaver mailSaver = new MailSaver();
 	private final MailListener myListener = new MailListener(mailSaver);
-	private final SMTPServer smtpServer = new SMTPServer(new SimpleMessageListenerAdapter(myListener), new SMTPAuthHandlerFactory());
+	private volatile SMTPServer smtpServer = createSmtpServer();
+	private boolean serverUsed = false;
 
 	SMTPServerHandler() {
 	}
@@ -35,17 +41,23 @@ public enum SMTPServerHandler {
 	 * @throws OutOfRangePortException when port is out of range.
 	 * @throws IllegalArgumentException when port is out of range.
 	 */
-	public void startServer(int port, InetAddress bindAddress) throws BindPortException, OutOfRangePortException {
+	public synchronized void startServer(int port, InetAddress bindAddress) throws BindPortException, OutOfRangePortException {
 		LOGGER.debug("Starting server on port {}", port);
+		if (serverUsed && !smtpServer.isRunning()) {
+			smtpServer = createSmtpServer();
+			serverUsed = false;
+		}
 		try {
 			smtpServer.setBindAddress(bindAddress);
 			smtpServer.setPort(port);
 			smtpServer.start();
+			serverUsed = true;
 		} catch (RuntimeException exception) {
-			if (exception.getMessage().contains("BindException")) { // Can't open port
-				LOGGER.error("{}. Port {}", exception.getMessage(), port);
+			String message = String.valueOf(exception.getMessage());
+			if (message.contains("BindException")) { // Can't open port
+				LOGGER.error("{}. Port {}", message, port);
 				throw new BindPortException(exception, port);
-			} else if (exception.getMessage().contains("out of range")) { // Port out of range
+			} else if (message.contains("out of range")) { // Port out of range
 				LOGGER.error("Port {} out of range.", port);
 				throw new OutOfRangePortException(exception, port);
 			} else { // Unknown error
@@ -61,11 +73,20 @@ public enum SMTPServerHandler {
 	 * If the server is not started, does nothing special.
 	 * </p>
 	 */
-	public void stopServer() {
+	public synchronized void stopServer() {
 		if (smtpServer.isRunning()) {
 			LOGGER.debug("Stopping server");
 			smtpServer.stop();
 		}
+	}
+
+	/**
+	 * Returns whether the SMTP server is currently accepting connections.
+	 *
+	 * @return {@code true} if the server is running.
+	 */
+	public boolean isRunning() {
+		return smtpServer.isRunning();
 	}
 
 	/**
@@ -84,5 +105,9 @@ public enum SMTPServerHandler {
 	 */
 	public SMTPServer getSmtpServer() {
 		return smtpServer;
+	}
+
+	private SMTPServer createSmtpServer() {
+		return new SMTPServer(new SimpleMessageListenerAdapter(myListener), new SMTPAuthHandlerFactory());
 	}
 }

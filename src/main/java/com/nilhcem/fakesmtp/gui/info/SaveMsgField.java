@@ -79,6 +79,17 @@ public final class SaveMsgField extends Observable implements Observer {
 	}
 
 	/**
+	 * Opens the directory chooser through the existing observer chain.
+	 */
+	public void requestChooseDirectory() {
+		if (ArgsHandler.INSTANCE.memoryModeEnabled()) {
+			return;
+		}
+		setChanged();
+		notifyObservers();
+	}
+
+	/**
 	 * Updates the content of the JTextField with the new directory value.
 	 * <p>
 	 * Once a directory has been chosen by the {@link DirChooser}, the latter will

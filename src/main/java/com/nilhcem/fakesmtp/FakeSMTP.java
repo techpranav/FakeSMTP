@@ -17,6 +17,7 @@ import com.nilhcem.fakesmtp.core.ArgsHandler;
 import com.nilhcem.fakesmtp.core.Configuration;
 import com.nilhcem.fakesmtp.core.exception.UncaughtExceptionHandler;
 import com.nilhcem.fakesmtp.gui.MainFrame;
+import com.nilhcem.fakesmtp.gui.inbox.Themes;
 import com.nilhcem.fakesmtp.server.SMTPServerHandler;
 
 /**
@@ -86,13 +87,10 @@ public final class FakeSMTP {
 					}
 
 					System.setProperty("apple.laf.useScreenMenuBar", "true");
+					System.setProperty("apple.awt.application.name", Configuration.INSTANCE.get("application.name"));
 					System.setProperty("com.apple.mrj.application.apple.menu.about.name", Configuration.INSTANCE.get("application.name"));
 					UIManager.put("swing.boldMetal", Boolean.FALSE);
-					try {
-						UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-					} catch (Exception e) {
-						LOGGER.error("", e);
-					}
+					Themes.installSaved();
 
 					new MainFrame();
 				}
