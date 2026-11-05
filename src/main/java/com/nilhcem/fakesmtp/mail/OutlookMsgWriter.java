@@ -54,6 +54,20 @@ public final class OutlookMsgWriter {
 			MAPIProperty.createCustom(0x1013, Types.BINARY, "HTML");
 	/** PidTagInternetCodepage = UTF-8 */
 	private static final int INTERNET_CPID_UTF8 = 65001;
+	/** ATT_MHTML_REF — keep CID images inline in the HTML body, not in the attachment list. */
+	private static final int ATTACH_FLAG_MHTML_REF = 4;
+	/**
+	 * POI's {@code ATTACH_FLAGS}/{@code RENDERING_POSITION} use {@code Types.UNKNOWN},
+	 * which jotlmsg cannot serialize — define typed tags explicitly.
+	 */
+	private static final MAPIProperty ATTACH_FLAGS =
+			MAPIProperty.createCustom(0x3714, Types.LONG, "ATTACH_FLAGS");
+	private static final MAPIProperty ATTACH_CONTENT_ID =
+			MAPIProperty.createCustom(0x3712, Types.UNICODE_STRING, "ATTACH_CONTENT_ID");
+	private static final MAPIProperty RENDERING_POSITION =
+			MAPIProperty.createCustom(0x370B, Types.LONG, "RENDERING_POSITION");
+	private static final MAPIProperty ATTACHMENT_HIDDEN =
+			MAPIProperty.createCustom(0x7FFE, Types.BOOLEAN, "ATTACHMENT_HIDDEN");
 
 	private OutlookMsgWriter() {
 		throw new UnsupportedOperationException();
@@ -76,13 +90,14 @@ public final class OutlookMsgWriter {
 		}
 		String subject = Texts.isBlank(parsed.getSubject()) ? "(no subject)" : parsed.getSubject();
 		String plain = plainBody(parsed, message.getRaw());
-		String html = parsed.getHtml();
+		OutlookHtmlNormalizer.Result htmlBody = OutlookHtmlNormalizer.normalize(parsed.getHtml());
+		String html = htmlBody.getHtml();
 		Date sent = parsed.getReceivedDate() != null ? parsed.getReceivedDate() : new Date();
 		String displayTo = EmailAddresses.displayNames(toList);
 		String displayCc = EmailAddresses.displayNames(ccList);
 		String displayBcc = EmailAddresses.displayNames(bccList);
 
-		List<AttachmentSpec> attachments = collectAttachments(parsed);
+		List<AttachmentSpec> attachments = collectAttachments(parsed, htmlBody);
 
 		POIFSFileSystem fs = new POIFSFileSystem();
 		try {
@@ -212,42 +227,87 @@ public final class OutlookMsgWriter {
 		attach.setProperty(new PropertyValue(MAPIProperty.ATTACH_METHOD, FLAGS,
 				ByteBuffer.allocate(4).putInt(1).array()));
 		attach.setProperty(new PropertyValue(MAPIProperty.ATTACH_DATA, FLAGS, attachment.data));
+		if (!Texts.isBlank(attachment.contentId)) {
+			attach.setProperty(unicode(ATTACH_CONTENT_ID, attachment.contentId));
+			attach.setProperty(new PropertyValue(ATTACH_FLAGS, FLAGS,
+					ByteBuffer.allocate(4).putInt(ATTACH_FLAG_MHTML_REF).array()));
+			attach.setProperty(new PropertyValue(ATTACHMENT_HIDDEN, FLAGS, new byte[] { 1 }));
+			attach.setProperty(new PropertyValue(RENDERING_POSITION, FLAGS,
+					ByteBuffer.allocate(4).putInt(-1).array()));
+		}
 		String rid = String.format("%08x", index);
 		DirectoryEntry folder = fs.createDirectory(AttachmentChunks.PREFIX + rid);
 		attach.writeTo(folder);
 	}
 
-	private static List<AttachmentSpec> collectAttachments(ParsedEmail parsed) {
+	private static List<AttachmentSpec> collectAttachments(ParsedEmail parsed,
+			OutlookHtmlNormalizer.Result htmlBody) {
 		List<AttachmentSpec> list = new ArrayList<AttachmentSpec>();
-		// Do not attach message-body.html — HTML is embedded as the message body for Outlook.
+		// File attachments (Excel, PDF, images, …) plus CID / data-URI / SVG embeds as MHTML parts.
 		for (MailAttachment attachment : parsed.getAttachments()) {
 			if (attachment == null || attachment.getData() == null) {
 				continue;
 			}
+			String type = resolveMime(attachment.getContentType(), attachment.getData());
 			String name = AttachmentFiles.safeName(attachment.getFileName());
-			String type = Texts.isBlank(attachment.getContentType())
-					? "application/octet-stream" : attachment.getContentType();
-			list.add(new AttachmentSpec(name, type, attachment.getData()));
+			if ("attachment".equalsIgnoreCase(name) || Texts.isBlank(name)) {
+				name = "file-" + list.size() + ImageBytes.extension(type);
+			} else if (!name.contains(".")) {
+				name = name + ImageBytes.extension(type);
+			}
+			String contentId = stripCid(attachment.getContentId());
+			list.add(new AttachmentSpec(name, type, attachment.getData(),
+					Texts.isBlank(contentId) ? null : contentId));
 		}
 		for (Map.Entry<String, byte[]> inline : parsed.getInlineImages().entrySet()) {
-			if (inline.getValue() == null) {
+			if (inline.getValue() == null || Texts.isBlank(inline.getKey())) {
 				continue;
 			}
-			boolean already = false;
-			for (MailAttachment attachment : parsed.getAttachments()) {
-				if (attachment != null && inline.getKey() != null
-						&& inline.getKey().equalsIgnoreCase(stripCid(attachment.getContentId()))) {
-					already = true;
-					break;
-				}
-			}
-			if (already) {
+			String cid = stripCid(inline.getKey());
+			if (hasCid(list, cid)) {
 				continue;
 			}
-			String name = "inline-" + sanitizeCid(inline.getKey()) + ".bin";
-			list.add(new AttachmentSpec(name, "application/octet-stream", inline.getValue()));
+			String type = ImageBytes.mimeType(inline.getValue());
+			list.add(new AttachmentSpec("inline-" + sanitizeCid(cid) + ImageBytes.extension(type),
+					type, inline.getValue(), cid));
+		}
+		for (Map.Entry<String, byte[]> embed : htmlBody.getInlineImages().entrySet()) {
+			if (hasCid(list, embed.getKey())) {
+				continue;
+			}
+			String type = htmlBody.mimeFor(embed.getKey());
+			if (Texts.isBlank(type)) {
+				type = ImageBytes.mimeType(embed.getValue());
+			}
+			list.add(new AttachmentSpec("embed-" + sanitizeCid(embed.getKey()) + ImageBytes.extension(type),
+					type, embed.getValue(), embed.getKey()));
 		}
 		return list;
+	}
+
+	private static boolean hasCid(List<AttachmentSpec> list, String cid) {
+		String needle = stripCid(cid);
+		for (AttachmentSpec existing : list) {
+			if (needle.equalsIgnoreCase(stripCid(existing.contentId))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static String resolveMime(String declared, byte[] data) {
+		if (!Texts.isBlank(declared)) {
+			String clean = declared;
+			int semi = clean.indexOf(';');
+			if (semi > 0) {
+				clean = clean.substring(0, semi);
+			}
+			clean = clean.trim().toLowerCase(Locale.ROOT);
+			if (!clean.isEmpty() && !"application/octet-stream".equals(clean)) {
+				return clean;
+			}
+		}
+		return ImageBytes.mimeType(data);
 	}
 
 	private static int countRecipients(List<EmailAddress> to, List<EmailAddress> cc, List<EmailAddress> bcc) {
@@ -343,11 +403,13 @@ public final class OutlookMsgWriter {
 		private final String name;
 		private final String mimeType;
 		private final byte[] data;
+		private final String contentId;
 
-		private AttachmentSpec(String name, String mimeType, byte[] data) {
+		private AttachmentSpec(String name, String mimeType, byte[] data, String contentId) {
 			this.name = name;
 			this.mimeType = mimeType;
 			this.data = data;
+			this.contentId = contentId;
 		}
 	}
 }

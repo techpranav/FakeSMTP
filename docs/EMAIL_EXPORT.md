@@ -6,8 +6,9 @@
 - More menu → **Save as Outlook Message (.msg)**
 - Writer: **jotlmsg 1.8** (Apache-2.0) on Apache POI — genuine OLE `.msg`, not a renamed EML
 - Compiled for **Java 11+** (ULM floor). jotlmsg 3.x HTML-primary body needs JDK 21 and is not used, so one JAR runs on Java 11–21 alike.
-- Contents: subject, from, To/CC/BCC, sent/received date, plain-text body, HTML as `message-body.html` attachment, file attachments, inline images as attachments
-- Independent validation: unit test reloads the file with `new OutlookMessage(file)` and asserts recipients + HTML attachment
+- Contents: subject, from, To/CC/BCC, sent/received date, plain-text body, binary HTML body (+ fromhtml RTF), file attachments (Excel/PDF/etc.), and inline embeds
+- HTML embeds: SVG charts → PNG `cid:` parts; `data:image…` and CSS background data URLs → `cid:` parts; existing MIME `cid:` images kept
+- Independent validation: unit tests reload with POI/jotlmsg and assert headers, HTML body stream, and rasterized chart attachments
 
 ## Save as EML (.eml)
 
@@ -24,4 +25,5 @@
 ## Limitations
 
 - BCC only when present in the received MIME
+- ActiveX / VML Office drawings are not rehydrated as live Excel objects (HTML tables and file attachments are preserved)
 - Commercial Aspose Email was not introduced

@@ -3,7 +3,6 @@ package com.nilhcem.fakesmtp.mail;
 import com.nilhcem.fakesmtp.core.Texts;
 
 import java.util.Base64;
-import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -39,7 +38,8 @@ public final class CidEmbedder {
 				matcher.appendReplacement(output, Matcher.quoteReplacement(matcher.group(0)));
 				continue;
 			}
-			String dataUrl = "data:" + mimeType(data) + ";base64," + Base64.getEncoder().encodeToString(data);
+			String dataUrl = "data:" + ImageBytes.mimeType(data) + ";base64,"
+					+ Base64.getEncoder().encodeToString(data);
 			matcher.appendReplacement(output,
 					Matcher.quoteReplacement(matcher.group(1) + dataUrl + matcher.group(3)));
 		}
@@ -72,21 +72,5 @@ public final class CidEmbedder {
 			cid = cid.substring(1, cid.length() - 1);
 		}
 		return cid.trim();
-	}
-
-	private static String mimeType(byte[] data) {
-		if (data.length >= 3 && (data[0] & 0xff) == 0xff && (data[1] & 0xff) == 0xd8 && (data[2] & 0xff) == 0xff) {
-			return "image/jpeg";
-		}
-		if (data.length >= 8 && data[0] == (byte) 0x89 && data[1] == 0x50 && data[2] == 0x4e && data[3] == 0x47) {
-			return "image/png";
-		}
-		if (data.length >= 6) {
-			String header = new String(data, 0, 6, java.nio.charset.StandardCharsets.US_ASCII).toLowerCase(Locale.ROOT);
-			if (header.startsWith("gif87a") || header.startsWith("gif89a")) {
-				return "image/gif";
-			}
-		}
-		return "image/png";
 	}
 }

@@ -7,7 +7,7 @@ Documented in `docs/EMAIL_FEATURES_IMPLEMENTATION_AUDIT.md`.
 ## 2. MSG export — Implemented & tested
 
 - Library: **jotlmsg 1.8** (Apache-2.0) + Apache POI; project Java release **17** (runs on 17+)
-- Genuine OLE `.msg` with plain text, To/CC/BCC, date, attachments; HTML as `message-body.html` (jotlmsg 3 HTML-primary body needs JDK 21 and was dropped for compatibility)
+- Genuine OLE `.msg` with plain text, To/CC/BCC, date, attachments, and HTML as the message body (binary PR_HTML + fromhtml RTF; SVG/`data:` embeds become CID images)
 - Independent reload via `new OutlookMessage(file)` in `EmailExportTest`
 - UI: right-click inbox row or More → Save as Outlook Message (.msg); async save; overwrite confirm; `Subject_yyyyMMdd_HHmmss.msg`
 

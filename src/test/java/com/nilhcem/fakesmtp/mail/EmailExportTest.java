@@ -80,6 +80,33 @@ public class EmailExportTest {
 		assertTrue(poi.getDisplayTo().toLowerCase().contains("approver"));
 		assertTrue(poi.getDisplayCC().toLowerCase().contains("derek")
 				|| poi.getDisplayCC().toLowerCase().contains("manager"));
+		assertTrue("MSG must contain binary HTML body stream",
+				hasStream(msg, "__substg1.0_10130102"));
+		String html;
+		org.apache.poi.poifs.filesystem.POIFSFileSystem fs =
+				new org.apache.poi.poifs.filesystem.POIFSFileSystem(msg, true);
+		try {
+			org.apache.poi.poifs.filesystem.DocumentInputStream htmlStream =
+					fs.createDocumentInputStream("__substg1.0_10130102");
+			byte[] htmlBytes = org.apache.poi.util.IOUtils.toByteArray(htmlStream);
+			htmlStream.close();
+			html = new String(htmlBytes, StandardCharsets.UTF_8);
+		} finally {
+			fs.close();
+		}
+		assertTrue(html.contains("cid:mailbox-chart-"));
+		assertTrue(html.toLowerCase().contains("<img"));
+		assertTrue(!html.toLowerCase().contains("<svg"));
+		OutlookMessage loaded = new OutlookMessage(msg);
+		int embedPngs = 0;
+		for (ch.astorm.jotlmsg.OutlookMessageAttachment attachment : loaded.getAttachments()) {
+			String name = attachment.getName();
+			if (name != null && (name.startsWith("embed-") || name.startsWith("chart-"))
+					&& name.toLowerCase().endsWith(".png")) {
+				embedPngs++;
+			}
+		}
+		assertTrue("expected rasterized chart attachments, found=" + embedPngs, embedPngs >= 2);
 	}
 
 	@Test
