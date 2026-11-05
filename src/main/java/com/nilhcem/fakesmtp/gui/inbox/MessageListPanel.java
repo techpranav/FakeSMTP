@@ -6,7 +6,6 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
-import java.awt.Rectangle;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
@@ -27,6 +26,7 @@ import javax.swing.JTextField;
 import javax.swing.ListCellRenderer;
 import javax.swing.ListSelectionModel;
 import javax.swing.ScrollPaneConstants;
+import javax.swing.SwingUtilities;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.nilhcem.fakesmtp.core.Texts;
@@ -202,6 +202,9 @@ public final class MessageListPanel extends JPanel {
 	 * Outlook-style right-click actions on an inbox row (Save as .msg, screenshot, etc.).
 	 */
 	private void installContextMenu() {
+		if (actions == null) {
+			return;
+		}
 		final JPopupMenu menu = new JPopupMenu();
 		final JMenuItem saveMsg = new JMenuItem(InboxText.get("reader.saveMsg"));
 		saveMsg.setToolTipText(InboxText.get("reader.saveMsg.tip"));
@@ -222,48 +225,67 @@ public final class MessageListPanel extends JPanel {
 		menu.addSeparator();
 		menu.add(delete);
 
-		MouseAdapter popup = new MouseAdapter() {
+		// Select the row under the cursor before the menu opens (Windows popup = mouseReleased).
+		list.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mousePressed(MouseEvent event) {
-				maybeShow(event);
+				selectRowAt(event);
 			}
 
 			@Override
 			public void mouseReleased(MouseEvent event) {
-				maybeShow(event);
+				selectRowAt(event);
 			}
 
-			private void maybeShow(MouseEvent event) {
-				if (!event.isPopupTrigger() || actions == null) {
+			private void selectRowAt(MouseEvent event) {
+				if (!SwingUtilities.isRightMouseButton(event) && !event.isPopupTrigger()) {
 					return;
 				}
 				int index = list.locationToIndex(event.getPoint());
-				if (index < 0) {
-					return;
+				if (index >= 0) {
+					list.setSelectedIndex(index);
 				}
-				Rectangle bounds = list.getCellBounds(index, index);
-				if (bounds == null || !bounds.contains(event.getPoint())) {
-					return;
-				}
-				list.setSelectedIndex(index);
-				final InboxMessage message = list.getSelectedValue();
-				if (message == null) {
+			}
+		});
+
+		menu.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
+			@Override
+			public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent event) {
+				InboxMessage message = list.getSelectedValue();
+				boolean enabled = message != null;
+				saveMsg.setEnabled(enabled);
+				saveEml.setEnabled(enabled);
+				screenshot.setEnabled(enabled);
+				flag.setEnabled(enabled);
+				markRead.setEnabled(enabled);
+				openFile.setEnabled(enabled);
+				delete.setEnabled(enabled);
+				if (!enabled) {
 					return;
 				}
 				flag.setText(message.isFlagged() ? InboxText.get("reader.unflag") : InboxText.get("reader.flag"));
 				markRead.setText(message.isRead() ? InboxText.get("reader.markUnread") : InboxText.get("reader.markRead"));
-				// Replace listeners each time so they capture the current message.
-				replaceAction(saveMsg, () -> actions.saveAsMsg(message));
-				replaceAction(saveEml, () -> actions.saveAsEml(message));
-				replaceAction(screenshot, () -> actions.saveScreenshot(message));
-				replaceAction(flag, () -> actions.toggleFlag(message));
-				replaceAction(markRead, () -> actions.markRead(message, !message.isRead()));
-				replaceAction(openFile, () -> actions.openStoredFile(message));
-				replaceAction(delete, () -> actions.deleteMessage(message));
-				menu.show(list, event.getX(), event.getY());
+				final InboxMessage target = message;
+				replaceAction(saveMsg, () -> actions.saveAsMsg(target));
+				replaceAction(saveEml, () -> actions.saveAsEml(target));
+				replaceAction(screenshot, () -> actions.saveScreenshot(target));
+				replaceAction(flag, () -> actions.toggleFlag(target));
+				replaceAction(markRead, () -> actions.markRead(target, !target.isRead()));
+				replaceAction(openFile, () -> actions.openStoredFile(target));
+				replaceAction(delete, () -> actions.deleteMessage(target));
 			}
-		};
-		list.addMouseListener(popup);
+
+			@Override
+			public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent event) {
+				// no-op
+			}
+
+			@Override
+			public void popupMenuCanceled(javax.swing.event.PopupMenuEvent event) {
+				// no-op
+			}
+		});
+		list.setComponentPopupMenu(menu);
 	}
 
 	private static void replaceAction(JMenuItem item, Runnable action) {

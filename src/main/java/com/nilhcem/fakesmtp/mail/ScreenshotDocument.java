@@ -1,6 +1,8 @@
 package com.nilhcem.fakesmtp.mail;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -18,6 +20,28 @@ public final class ScreenshotDocument {
 		throw new UnsupportedOperationException();
 	}
 
+	/**
+	 * Returns a temporary {@link ParsedEmail} whose prepared HTML is the capture document
+	 * (metadata + body), suitable for {@link HtmlRenderer#renderFull}.
+	 */
+	public static ParsedEmail asCaptureEmail(ParsedEmail parsed) {
+		String page = compose(parsed);
+		PreparedHtml prepared = HtmlPreprocessor.prepare(page, false);
+		return ParsedEmail.builder()
+				.subject(parsed.getSubject())
+				.from(EmailAddresses.resolveFrom(parsed))
+				.to(EmailAddresses.resolveTo(parsed))
+				.cc(EmailAddresses.resolveCc(parsed))
+				.bcc(EmailAddresses.resolveBcc(parsed))
+				.receivedDate(parsed.getReceivedDate())
+				.html(page)
+				.preparedHtml(prepared.getXhtml())
+				.inlineImages(parsed.getInlineImages())
+				.attachments(parsed.getAttachments())
+				.readable(true)
+				.build();
+	}
+
 	public static String compose(ParsedEmail parsed) {
 		StringBuilder html = new StringBuilder();
 		html.append("<html><head><meta charset=\"UTF-8\"/></head>");
@@ -27,24 +51,48 @@ public final class ScreenshotDocument {
 		html.append("<div style=\"font-size:22px;font-weight:600;margin:0 0 14px 0;line-height:1.3\">");
 		html.append(escape(blank(parsed.getSubject(), "(no subject)")));
 		html.append("</div>");
-		appendField(html, "From", formatList(parsed.getFrom()));
-		appendField(html, "To", formatList(parsed.getTo()));
-		if (hasAddresses(parsed.getCc())) {
-			appendField(html, "CC", formatList(parsed.getCc()));
+		appendField(html, "From", formatOrDash(EmailAddresses.resolveFrom(parsed)));
+		appendField(html, "To", formatOrDash(EmailAddresses.resolveTo(parsed)));
+		appendField(html, "CC", formatOrDash(EmailAddresses.resolveCc(parsed)));
+		List<EmailAddress> bcc = EmailAddresses.resolveBcc(parsed);
+		if (EmailAddresses.first(bcc) != null) {
+			appendField(html, "BCC", formatOrDash(bcc));
 		}
-		if (hasAddresses(parsed.getBcc())) {
-			appendField(html, "BCC", formatList(parsed.getBcc()));
-		}
-		if (parsed.getReceivedDate() != null) {
-			String date = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z", Locale.US)
-					.format(parsed.getReceivedDate());
+		Date when = parsed.getReceivedDate();
+		if (when != null) {
+			String date = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z", Locale.US).format(when);
 			appendField(html, "Date", date);
 		}
+		appendAttachments(html, parsed.getAttachments());
 		html.append("</div>");
 		html.append("<div style=\"padding:16px 24px 24px 24px;background:#ffffff\">");
 		html.append(bodyFragment(parsed));
 		html.append("</div></body></html>");
 		return html.toString();
+	}
+
+	private static void appendAttachments(StringBuilder html, List<MailAttachment> attachments) {
+		if (attachments == null || attachments.isEmpty()) {
+			return;
+		}
+		List<String> names = new ArrayList<String>();
+		for (MailAttachment attachment : attachments) {
+			if (attachment == null || Texts.isBlank(attachment.getFileName())) {
+				continue;
+			}
+			names.add(attachment.getFileName());
+		}
+		if (names.isEmpty()) {
+			return;
+		}
+		StringBuilder value = new StringBuilder();
+		for (int i = 0; i < names.size(); i++) {
+			if (i > 0) {
+				value.append("; ");
+			}
+			value.append(names.get(i));
+		}
+		appendField(html, "Attachments", value.toString());
 	}
 
 	private static String bodyFragment(ParsedEmail parsed) {
@@ -75,37 +123,14 @@ public final class ScreenshotDocument {
 	}
 
 	private static void appendField(StringBuilder html, String label, String value) {
-		if (Texts.isBlank(value)) {
-			return;
-		}
 		html.append("<div style=\"font-size:12.5px;margin:0 0 6px 0;line-height:1.45\">");
 		html.append("<span style=\"color:#5f6368;font-weight:600\">").append(escape(label)).append(":</span> ");
 		html.append("<span style=\"color:#202124\">").append(escape(value)).append("</span></div>");
 	}
 
-	private static boolean hasAddresses(List<EmailAddress> addresses) {
-		return !Texts.isBlank(formatList(addresses));
-	}
-
-	private static String formatList(List<EmailAddress> addresses) {
-		if (addresses == null || addresses.isEmpty()) {
-			return "";
-		}
-		StringBuilder out = new StringBuilder();
-		for (EmailAddress address : addresses) {
-			if (address == null) {
-				continue;
-			}
-			String line = address.format();
-			if (Texts.isBlank(line)) {
-				continue;
-			}
-			if (out.length() > 0) {
-				out.append("; ");
-			}
-			out.append(line);
-		}
-		return out.toString();
+	private static String formatOrDash(List<EmailAddress> addresses) {
+		String formatted = EmailAddresses.formatList(addresses);
+		return Texts.isBlank(formatted) ? "—" : formatted;
 	}
 
 	private static String blank(String value, String fallback) {

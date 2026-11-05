@@ -47,6 +47,12 @@ public class EmailExportTest {
 		}
 		assertTrue(htmlAttached);
 		assertEquals(1, loaded.getRecipients(ch.astorm.jotlmsg.OutlookMessageRecipient.Type.TO).size());
+		assertEquals(1, loaded.getRecipients(ch.astorm.jotlmsg.OutlookMessageRecipient.Type.CC).size());
+		org.apache.poi.hsmf.MAPIMessage poi = new org.apache.poi.hsmf.MAPIMessage(msg.getAbsolutePath());
+		assertTrue(poi.getDisplayFrom().toLowerCase().contains("tester")
+				|| poi.getDisplayFrom().toLowerCase().contains("mailbox"));
+		assertTrue(poi.getDisplayTo().toLowerCase().contains("developer"));
+		assertTrue(poi.getDisplayCC().toLowerCase().contains("qa"));
 	}
 
 	@Test

@@ -54,17 +54,20 @@ public final class EmailExport {
 		} else if (!Texts.isBlank(message.getRaw())) {
 			outlook.setPlainTextBody(message.getRaw());
 		}
-		EmailAddress from = first(parsed.getFrom());
-		if (from != null && !Texts.isBlank(from.getAddress())) {
-			if (!Texts.isBlank(from.getPersonal())) {
-				outlook.setFrom(from.getPersonal() + " <" + from.getAddress() + ">");
-			} else {
-				outlook.setFrom(from.getAddress());
+		EmailAddress from = EmailAddresses.first(EmailAddresses.resolveFrom(parsed));
+		if (from != null) {
+			String email = EmailAddresses.emailOnly(from);
+			String name = EmailAddresses.displayName(from);
+			if (!Texts.isBlank(email)) {
+				// jotlmsg stores this on both sender props; OutlookMsgEnhancer splits name/email after write.
+				outlook.setFrom(!Texts.isBlank(name) && !name.equals(email) ? name + " <" + email + ">" : email);
+			} else if (!Texts.isBlank(name)) {
+				outlook.setFrom(name);
 			}
 		}
-		addRecipients(outlook, OutlookMessageRecipient.Type.TO, parsed.getTo());
-		addRecipients(outlook, OutlookMessageRecipient.Type.CC, parsed.getCc());
-		addRecipients(outlook, OutlookMessageRecipient.Type.BCC, parsed.getBcc());
+		addRecipients(outlook, OutlookMessageRecipient.Type.TO, EmailAddresses.resolveTo(parsed));
+		addRecipients(outlook, OutlookMessageRecipient.Type.CC, EmailAddresses.resolveCc(parsed));
+		addRecipients(outlook, OutlookMessageRecipient.Type.BCC, EmailAddresses.resolveBcc(parsed));
 		if (parsed.getReplyTo() != null && !parsed.getReplyTo().isEmpty()) {
 			java.util.ArrayList<String> reply = new java.util.ArrayList<String>();
 			for (EmailAddress address : parsed.getReplyTo()) {
@@ -76,6 +79,7 @@ public final class EmailExport {
 				outlook.setReplyTo(reply);
 			}
 		}
+		// Keep HTML attachment as a fallback; primary HTML body is written by OutlookMsgEnhancer.
 		if (!Texts.isBlank(parsed.getHtml())) {
 			byte[] htmlBytes = parsed.getHtml().getBytes(StandardCharsets.UTF_8);
 			outlook.addAttachment("message-body.html", "text/html", new ByteArrayInputStream(htmlBytes));
@@ -92,6 +96,7 @@ public final class EmailExport {
 			outlook.addAttachment(name, "application/octet-stream", new ByteArrayInputStream(inline.getValue()));
 		}
 		outlook.writeTo(file);
+		OutlookMsgEnhancer.enhance(file, parsed);
 	}
 
 	/**
@@ -215,13 +220,6 @@ public final class EmailExport {
 			}
 			outlook.addRecipient(type, address.getAddress(), address.getPersonal());
 		}
-	}
-
-	private static EmailAddress first(List<EmailAddress> addresses) {
-		if (addresses == null || addresses.isEmpty()) {
-			return null;
-		}
-		return addresses.get(0);
 	}
 
 	private static String stripTags(String html) {

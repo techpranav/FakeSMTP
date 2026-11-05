@@ -81,16 +81,7 @@ public final class HtmlRenderer {
 		MailUserAgent agent = new MailUserAgent();
 		ScrollableHtmlPanel panel = createPanel(agent);
 		show(panel, agent, email);
-		panel.setSize(new Dimension(width, 200));
-		panel.doLayout();
-		int preferred = panel.getPreferredSize().height;
-		if (preferred < 200) {
-			preferred = 200;
-		}
-		if (preferred > maxHeight) {
-			throw new IllegalArgumentException("Email content height " + preferred
-					+ "px exceeds the capture limit of " + maxHeight + "px");
-		}
+		int preferred = measureContentHeight(panel, width, maxHeight);
 		panel.setSize(new Dimension(width, preferred));
 		panel.doLayout();
 		BufferedImage image = new BufferedImage(width, preferred, BufferedImage.TYPE_INT_RGB);
@@ -103,6 +94,37 @@ public final class HtmlRenderer {
 			graphics.dispose();
 		}
 		return image;
+	}
+
+	/**
+	 * Flying Saucer's {@code getPreferredSize()} often under-reports tall HTML (tables/SVG).
+	 * Force a document layout pass, then take the root box height.
+	 */
+	private static int measureContentHeight(ScrollableHtmlPanel panel, int width, int maxHeight) {
+		int layoutHeight = Math.min(Math.max(2400, maxHeight / 2), maxHeight);
+		panel.setSize(new Dimension(width, layoutHeight));
+		BufferedImage probe = new BufferedImage(width, 64, BufferedImage.TYPE_INT_RGB);
+		Graphics2D graphics = probe.createGraphics();
+		try {
+			panel.doDocumentLayout(graphics);
+			panel.doLayout();
+		} finally {
+			graphics.dispose();
+		}
+		int height = 200;
+		org.xhtmlrenderer.render.Box root = panel.getRootBox();
+		if (root != null) {
+			height = Math.max(height, root.getHeight() + Math.max(0, root.getY()) + 32);
+		}
+		Dimension preferred = panel.getPreferredSize();
+		if (preferred != null) {
+			height = Math.max(height, preferred.height + 16);
+		}
+		if (height > maxHeight) {
+			throw new IllegalArgumentException("Email content height " + height
+					+ "px exceeds the capture limit of " + maxHeight + "px");
+		}
+		return Math.max(height, 200);
 	}
 
 	private static void removeDefaultLinks(XHTMLPanel panel) {
