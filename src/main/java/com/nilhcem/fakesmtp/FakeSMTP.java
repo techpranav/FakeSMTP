@@ -18,6 +18,7 @@ import com.nilhcem.fakesmtp.core.Configuration;
 import com.nilhcem.fakesmtp.core.exception.UncaughtExceptionHandler;
 import com.nilhcem.fakesmtp.gui.MainFrame;
 import com.nilhcem.fakesmtp.gui.inbox.Themes;
+import com.nilhcem.fakesmtp.license.MailBoxLicenseGate;
 import com.nilhcem.fakesmtp.server.SMTPServerHandler;
 
 /**
@@ -58,7 +59,13 @@ public final class FakeSMTP {
 			return;
 		}
 
-		if (ArgsHandler.INSTANCE.shouldStartInBackground()) {
+		boolean background = ArgsHandler.INSTANCE.shouldStartInBackground();
+		if (!MailBoxLicenseGate.ensureLicensed(!background)) {
+			System.exit(3);
+			return;
+		}
+
+		if (background) {
 			try {
 				SMTPServerHandler.INSTANCE.startServer(getPort(), getBindAddress());
 			} catch (NumberFormatException e) {

@@ -15,9 +15,18 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
 		<docker.image>mailbox</docker.image>
+		<!-- ULM license-sdk requires Java 17+; application and tests target the same release. -->
+		<maven.compiler.release>17</maven.compiler.release>
 	</properties>
 
 	<dependencies>
+		<!-- Unified License Manager — in-app startup license check (JAR ships without .lic) -->
+		<dependency>
+			<groupId>com.ulm</groupId>
+			<artifactId>license-sdk</artifactId>
+			<version>1.1.0</version>
+		</dependency>
+
 		<!-- MIG Layout: layout for Swing -->
 		<dependency>
 			<groupId>com.miglayout</groupId>
@@ -118,14 +127,28 @@
 	<build>
 		<finalName>MailBox</finalName>
 
+		<!-- Embed ULM public keys when present (never private keys / .lic files). -->
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+			</resource>
+			<resource>
+				<directory>src/main/ulm</directory>
+				<includes>
+					<include>trusted-keys.properties</include>
+				</includes>
+				<targetPath>META-INF/ulm</targetPath>
+			</resource>
+		</resources>
+
 		<plugins>
-			<!-- Java 8 bytecode so the jar runs on Java 8 and every newer JDK -->
+			<!-- Java 17 required by ULM license-sdk (Ed25519 offline licensing) -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.13.0</version>
 				<configuration>
-					<release>8</release>
+					<release>${maven.compiler.release}</release>
 				</configuration>
 			</plugin>
 
@@ -397,11 +420,11 @@
 	</licenses>
 
 	<!--
-	  ULM zero-code licensing (optional profile).
-	  Prerequisites: Java 17+ to *run* the packaged distribution (bytecode stays Java 8).
+	  Optional ULM agent sidecar packaging (in addition to the in-app SDK gate).
 	  Place public keys at src/main/ulm/trusted-keys.properties (never private keys), then:
 	    mvn -Pulm package
 	  Output: target/ulm-dist/ with MailBox.jar, ulm agent, and run.bat / run.sh.
+	  Default `mvn package` already embeds license-sdk; the .lic file is never packaged.
 	-->
 	<profiles>
 		<profile>
