@@ -9,7 +9,7 @@ The window is a mail client layout: header, sidebar, message list, and reading p
 - Sidebar: Inbox, Unread, Flagged, All Emails, Attachments, and the SMTP log. Each mailbox shows a count.
 - List: sender, subject, preview, time, unread emphasis, flag star, attachment mark. Search covers sender, recipient, subject, and preview. Sort by newest, oldest, subject, sender, or flagged first.
 - Reading pane: HTML, plain text, headers, and raw MIME. Mark read or unread, flag/unflag, delete one message, open the saved `.eml`.
-- Export: **Save as MSG** (Outlook `.msg` with HTML also attached as `message-body.html`), **Save as EML**, and **Save screenshot** (full-height PNG of the HTML body).
+- Export: right-click inbox row or More menu → **Save as MSG** (Outlook `.msg` with HTML also attached as `message-body.html`), **Save as EML**, and **Save screenshot** (full email PNG with metadata + body).
 - **Send test email** in the header injects a sample multipart message (HTML, links, table, chart, inline image, `sample.txt` / `sample.csv`) so you can check the UI without an SMTP client.
 - Attachments: name, type, size, Content-ID. Save (names are reduced to a single safe file name), open with the system application on an explicit click, and preview images.
 - Empty states for no mail, no search hits, no unread mail, no flagged mail, no attachments, and nothing selected.

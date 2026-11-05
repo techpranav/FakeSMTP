@@ -5,20 +5,24 @@ import java.awt.Cursor;
 import java.awt.Font;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.Collections;
+import java.util.List;
 
 import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
 import com.nilhcem.fakesmtp.core.Texts;
+import com.nilhcem.fakesmtp.mail.EmailAddress;
 import com.nilhcem.fakesmtp.mail.ParsedEmail;
 import com.nilhcem.fakesmtp.model.InboxMessage;
 
 import net.miginfocom.swing.MigLayout;
 
 /**
- * Compact Outlook-style header. Keeps meta chrome tight so the email body starts sooner.
+ * Compact Outlook-style header with clickable From / To / CC / BCC addresses.
  *
  * @since 2.1
  */
@@ -26,12 +30,14 @@ public final class MessageHeaderPanel extends JPanel {
 
 	private final JLabel subject = new JLabel(" ");
 	private final AvatarLabel avatar = new AvatarLabel();
-	private final JLabel sender = new JLabel(" ");
+	private final AddressLinkLabel sender = new AddressLinkLabel();
 	private final JLabel date = new JLabel(" ");
-	private final JLabel recipients = new JLabel(" ");
+	private final AddressLinePanel toLine = new AddressLinePanel();
+	private final AddressLinePanel ccLine = new AddressLinePanel();
+	private final AddressLinePanel bccLine = new AddressLinePanel();
+	private final AddressLinePanel replyLine = new AddressLinePanel();
 	private final JLabel detailsToggle = new JLabel(InboxText.get("reader.details.show"));
-	private final JPanel details = new JPanel(new MigLayout("insets 2 0 0 0, fillx, gap 0 2", "[grow,fill]", "[]"));
-	private final JLabel detailsText = new JLabel(" ");
+	private final JPanel details = new JPanel();
 	private boolean detailsOpen;
 
 	public MessageHeaderPanel() {
@@ -39,7 +45,8 @@ public final class MessageHeaderPanel extends JPanel {
 		setOpaque(false);
 
 		subject.setFont(UiTokens.subjectFont(subject.getFont()));
-		add(subject, "growx, wrap");
+		subject.setMinimumSize(new java.awt.Dimension(0, 0));
+		add(subject, "growx, wmin 0, wrap");
 
 		JPanel identity = new JPanel(new BorderLayout(UiTokens.SPACE_SM, 0));
 		identity.setOpaque(false);
@@ -57,7 +64,10 @@ public final class MessageHeaderPanel extends JPanel {
 		identity.add(senderRow, BorderLayout.CENTER);
 		add(identity, "growx, wrap");
 
-		recipients.setFont(UiTokens.compactFont(recipients.getFont()));
+		JPanel recipientSummary = new JPanel(new BorderLayout(UiTokens.SPACE_SM, 0));
+		recipientSummary.setOpaque(false);
+		toLine.setOpaque(false);
+		recipientSummary.add(toLine, BorderLayout.CENTER);
 		detailsToggle.setFont(UiTokens.compactFont(detailsToggle.getFont()));
 		detailsToggle.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 		detailsToggle.addMouseListener(new MouseAdapter() {
@@ -66,29 +76,28 @@ public final class MessageHeaderPanel extends JPanel {
 				toggleDetails();
 			}
 		});
-
-		JPanel recipientRow = new JPanel(new BorderLayout(UiTokens.SPACE_SM, 0));
-		recipientRow.setOpaque(false);
-		recipientRow.add(recipients, BorderLayout.CENTER);
-		recipientRow.add(detailsToggle, BorderLayout.EAST);
-		add(recipientRow, "growx, wrap");
+		recipientSummary.add(detailsToggle, BorderLayout.EAST);
+		add(recipientSummary, "growx, wrap");
 
 		details.setOpaque(false);
+		details.setLayout(new BoxLayout(details, BoxLayout.Y_AXIS));
 		details.setVisible(false);
-		detailsText.setFont(UiTokens.compactFont(detailsText.getFont()));
-		detailsText.setVerticalAlignment(SwingConstants.TOP);
-		details.add(detailsText, "growx");
+		details.add(ccLine);
+		details.add(bccLine);
+		details.add(replyLine);
 		add(details, "growx, wrap, hidemode 3");
 		applyTheme();
 	}
 
 	public void applyTheme() {
 		subject.setForeground(UiTokens.TEXT);
-		sender.setForeground(UiTokens.TEXT);
+		sender.applyTheme();
 		date.setForeground(UiTokens.TEXT_SECONDARY);
-		recipients.setForeground(UiTokens.TEXT_SECONDARY);
 		detailsToggle.setForeground(UiTokens.ACCENT);
-		detailsText.setForeground(UiTokens.TEXT_SECONDARY);
+		toLine.applyTheme();
+		ccLine.applyTheme();
+		bccLine.applyTheme();
+		replyLine.applyTheme();
 		setBorder(BorderFactory.createCompoundBorder(
 				UiTokens.bottomHairline(),
 				BorderFactory.createEmptyBorder(0, 0, UiTokens.SPACE_SM, 0)));
@@ -96,37 +105,39 @@ public final class MessageHeaderPanel extends JPanel {
 
 	public void showMessage(InboxMessage message) {
 		ParsedEmail parsed = message.getParsed();
-		subject.setText(subjectOf(parsed));
+		String subjectText = subjectOf(parsed);
+		subject.setText(subjectText);
+		subject.setToolTipText(subjectText);
 		avatar.setIdentity(parsed.senderLine());
-		sender.setText(valueOrUnknown(parsed.senderLine()));
+		EmailAddress from = first(parsed.getFrom());
+		if (from == null && !Texts.isBlank(parsed.getEnvelopeFrom())) {
+			from = new EmailAddress(null, parsed.getEnvelopeFrom());
+		}
+		sender.setAddress(from);
 		date.setText(MailDates.format(message.getReceivedDate()));
 
-		String to = valueOrNone(parsed.recipientLine());
-		String cc = ParsedEmail.join(parsed.getCc());
-		String bcc = ParsedEmail.join(parsed.getBcc());
-		String reply = ParsedEmail.join(parsed.getReplyTo());
+		List<EmailAddress> to = parsed.getTo();
+		if ((to == null || to.isEmpty()) && !Texts.isBlank(parsed.getEnvelopeTo())) {
+			to = Collections.singletonList(new EmailAddress(null, parsed.getEnvelopeTo()));
+		}
+		toLine.setAddresses(InboxText.get("reader.to"), to);
 
-		StringBuilder summary = new StringBuilder();
-		summary.append(InboxText.get("reader.to")).append(": ").append(shorten(to, 72));
-		if (!Texts.isBlank(cc)) {
-			summary.append("   ").append(InboxText.get("reader.cc")).append(": ").append(shorten(cc, 36));
+		boolean hasCc = hasAddresses(parsed.getCc());
+		boolean hasBcc = hasAddresses(parsed.getBcc());
+		boolean hasReply = hasAddresses(parsed.getReplyTo());
+		ccLine.setVisible(hasCc);
+		bccLine.setVisible(hasBcc);
+		replyLine.setVisible(hasReply);
+		if (hasCc) {
+			ccLine.setAddresses(InboxText.get("reader.cc"), parsed.getCc());
 		}
-		recipients.setText(summary.toString());
-
-		StringBuilder full = new StringBuilder("<html><body style='width:100%;color:")
-				.append(UiTokens.toHex(UiTokens.TEXT_SECONDARY)).append(";font-size:11px'>");
-		full.append("<b>").append(InboxText.get("reader.to")).append(":</b> ").append(escape(to)).append("<br>");
-		if (!Texts.isBlank(cc)) {
-			full.append("<b>").append(InboxText.get("reader.cc")).append(":</b> ").append(escape(cc)).append("<br>");
+		if (hasBcc) {
+			bccLine.setAddresses(InboxText.get("reader.bcc"), parsed.getBcc());
 		}
-		if (!Texts.isBlank(bcc)) {
-			full.append("<b>").append(InboxText.get("reader.bcc")).append(":</b> ").append(escape(bcc)).append("<br>");
+		if (hasReply) {
+			replyLine.setAddresses(InboxText.get("reader.replyTo"), parsed.getReplyTo());
 		}
-		if (!Texts.isBlank(reply)) {
-			full.append("<b>").append(InboxText.get("reader.replyTo")).append(":</b> ").append(escape(reply));
-		}
-		full.append("</body></html>");
-		detailsText.setText(full.toString());
+		detailsToggle.setVisible(hasCc || hasBcc || hasReply);
 		detailsOpen = false;
 		details.setVisible(false);
 		detailsToggle.setText(InboxText.get("reader.details.show"));
@@ -144,38 +155,29 @@ public final class MessageHeaderPanel extends JPanel {
 		repaint();
 	}
 
+	private static boolean hasAddresses(List<EmailAddress> addresses) {
+		if (addresses == null) {
+			return false;
+		}
+		for (EmailAddress address : addresses) {
+			if (address != null && !Texts.isBlank(address.getAddress())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static EmailAddress first(List<EmailAddress> addresses) {
+		if (addresses == null || addresses.isEmpty()) {
+			return null;
+		}
+		return addresses.get(0);
+	}
+
 	private static String subjectOf(ParsedEmail parsed) {
 		if (Texts.isBlank(parsed.getSubject())) {
 			return InboxText.get("reader.nosubject");
 		}
 		return parsed.getSubject();
-	}
-
-	private static String valueOrUnknown(String value) {
-		if (Texts.isBlank(value)) {
-			return InboxText.get("reader.unknown");
-		}
-		return value;
-	}
-
-	private static String valueOrNone(String value) {
-		if (Texts.isBlank(value)) {
-			return InboxText.get("reader.none");
-		}
-		return value;
-	}
-
-	private static String shorten(String value, int max) {
-		if (value == null) {
-			return "";
-		}
-		if (value.length() <= max) {
-			return value;
-		}
-		return value.substring(0, max - 1) + "\u2026";
-	}
-
-	private static String escape(String value) {
-		return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
 	}
 }

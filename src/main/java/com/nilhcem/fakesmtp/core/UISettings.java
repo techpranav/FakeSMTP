@@ -37,6 +37,9 @@ public enum UISettings {
 	public static final String NOTIFICATIONS_PREVIEW = "notifications.preview";
 	public static final String NOTIFICATIONS_SOUND = "notifications.sound";
 	public static final String NOTIFICATIONS_EVERY_EMAIL = "notifications.every.email";
+	public static final String NOTIFICATIONS_SHOW_SENDER = "notifications.show.sender";
+	public static final String NOTIFICATIONS_SHOW_SUBJECT = "notifications.show.subject";
+	public static final String NOTIFICATIONS_PRIVACY = "notifications.privacy";
 	public static final String EXTERNAL_IMAGES = "reading.external.images";
 	public static final String DEFAULT_VIEW = "reading.default.view";
 	public static final String SORT_NEWEST_FIRST = "list.sort.newest.first";
@@ -64,6 +67,9 @@ public enum UISettings {
 		defaults.setProperty(NOTIFICATIONS_PREVIEW, "true");
 		defaults.setProperty(NOTIFICATIONS_SOUND, "false");
 		defaults.setProperty(NOTIFICATIONS_EVERY_EMAIL, "true");
+		defaults.setProperty(NOTIFICATIONS_SHOW_SENDER, "true");
+		defaults.setProperty(NOTIFICATIONS_SHOW_SUBJECT, "true");
+		defaults.setProperty(NOTIFICATIONS_PRIVACY, "false");
 		defaults.setProperty(EXTERNAL_IMAGES, "false");
 		defaults.setProperty(DEFAULT_VIEW, VIEW_HTML);
 		defaults.setProperty(SORT_NEWEST_FIRST, "true");

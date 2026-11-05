@@ -83,20 +83,21 @@ public final class HtmlRenderer {
 		show(panel, agent, email);
 		panel.setSize(new Dimension(width, 200));
 		panel.doLayout();
-		int height = panel.getPreferredSize().height;
-		if (height < 200) {
-			height = 200;
+		int preferred = panel.getPreferredSize().height;
+		if (preferred < 200) {
+			preferred = 200;
 		}
-		if (height > maxHeight) {
-			height = maxHeight;
+		if (preferred > maxHeight) {
+			throw new IllegalArgumentException("Email content height " + preferred
+					+ "px exceeds the capture limit of " + maxHeight + "px");
 		}
-		panel.setSize(new Dimension(width, height));
+		panel.setSize(new Dimension(width, preferred));
 		panel.doLayout();
-		BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+		BufferedImage image = new BufferedImage(width, preferred, BufferedImage.TYPE_INT_RGB);
 		Graphics2D graphics = image.createGraphics();
 		try {
 			graphics.setColor(Color.WHITE);
-			graphics.fillRect(0, 0, width, height);
+			graphics.fillRect(0, 0, width, preferred);
 			panel.paint(graphics);
 		} finally {
 			graphics.dispose();

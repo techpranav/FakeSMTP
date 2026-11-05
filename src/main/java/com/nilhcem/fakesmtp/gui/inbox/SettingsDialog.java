@@ -44,6 +44,9 @@ public final class SettingsDialog {
 		JCheckBox preview = box("settings.preview", settings.getBoolean(UISettings.NOTIFICATIONS_PREVIEW));
 		JCheckBox sound = box("settings.sound", settings.getBoolean(UISettings.NOTIFICATIONS_SOUND));
 		JCheckBox every = box("settings.every", settings.getBoolean(UISettings.NOTIFICATIONS_EVERY_EMAIL));
+		JCheckBox showSender = box("settings.showSender", settings.getBoolean(UISettings.NOTIFICATIONS_SHOW_SENDER));
+		JCheckBox showSubject = box("settings.showSubject", settings.getBoolean(UISettings.NOTIFICATIONS_SHOW_SUBJECT));
+		JCheckBox privacy = box("settings.privacy", settings.getBoolean(UISettings.NOTIFICATIONS_PRIVACY));
 		JCheckBox images = box("settings.images", settings.getBoolean(UISettings.EXTERNAL_IMAGES));
 		JCheckBox newest = box("settings.sort", settings.getBoolean(UISettings.SORT_NEWEST_FIRST));
 		JCheckBox load = box("settings.load", settings.getBoolean(UISettings.LOAD_SAVED_EMAILS));
@@ -60,7 +63,10 @@ public final class SettingsDialog {
 		form.add(notifications);
 		form.add(desktop);
 		form.add(inApp);
+		form.add(showSender);
+		form.add(showSubject);
 		form.add(preview);
+		form.add(privacy);
 		form.add(sound);
 		form.add(every);
 		form.add(new JLabel(InboxText.get("settings.toast.seconds")));
@@ -90,7 +96,10 @@ public final class SettingsDialog {
 		settings.setBoolean(UISettings.NOTIFICATIONS_ENABLED, notifications.isSelected());
 		settings.setBoolean(UISettings.NOTIFICATIONS_DESKTOP, desktop.isSelected());
 		settings.setBoolean(UISettings.NOTIFICATIONS_INAPP, inApp.isSelected());
+		settings.setBoolean(UISettings.NOTIFICATIONS_SHOW_SENDER, showSender.isSelected());
+		settings.setBoolean(UISettings.NOTIFICATIONS_SHOW_SUBJECT, showSubject.isSelected());
 		settings.setBoolean(UISettings.NOTIFICATIONS_PREVIEW, preview.isSelected());
+		settings.setBoolean(UISettings.NOTIFICATIONS_PRIVACY, privacy.isSelected());
 		settings.setBoolean(UISettings.NOTIFICATIONS_SOUND, sound.isSelected());
 		settings.setBoolean(UISettings.NOTIFICATIONS_EVERY_EMAIL, every.isSelected());
 		settings.setInt(UISettings.NOTIFICATIONS_TOAST_SECONDS, ((Integer) toastSeconds.getValue()).intValue());

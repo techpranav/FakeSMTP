@@ -91,6 +91,21 @@ public class NewMailNotifierTest {
 			public boolean applicationFocused() {
 				return focused;
 			}
+
+			@Override
+			public boolean showSender() {
+				return true;
+			}
+
+			@Override
+			public boolean showSubject() {
+				return true;
+			}
+
+			@Override
+			public boolean privacyMode() {
+				return false;
+			}
 		};
 	}
 

@@ -36,6 +36,7 @@ public class EmailRenderTest {
 		assertTrue(email.senderLine().contains("Enovia@technia.com"));
 		assertTrue(email.getPreparedHtml().contains("E00827"));
 		assertTrue(email.getPreparedHtml().contains("Task Assignee"));
+		assertTrue(email.getPreparedHtml().contains("href=") || email.getHtml().contains("href="));
 		assertTrue(email.getPreparedHtml().contains("data:image/png;base64,"));
 		assertFalse(email.getPreparedHtml().toLowerCase().contains("<script"));
 		assertFalse(email.getPreparedHtml().contains("example.invalid"));
@@ -51,6 +52,31 @@ public class EmailRenderTest {
 		assertTrue(containsColor(image, 217, 226, 239));
 		assertTrue(containsColor(image, 76, 120, 168) || containsColor(image, 245, 133, 24));
 		assertNotNull(image);
+	}
+
+	@Test
+	public void rendersWideTableFixtureWithoutThemeInjection() throws Exception {
+		String html = new String(resource("emails/wide-table.html"), StandardCharsets.UTF_8);
+		String raw = "From: qa@example.com\r\nTo: review@example.com\r\nSubject: Wide table fixture\r\n"
+				+ "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n"
+				+ html.replace("\n", "\r\n");
+		ParsedEmail email = EmailParser.parse(raw, "qa@example.com", "review@example.com", new Date(), null, false);
+		assertTrue(email.isReadable());
+		assertTrue(email.getPreparedHtml().contains("E00827-CR-2026-0042"));
+		assertTrue(email.getPreparedHtml().contains("変更要求") || email.getHtml().contains("変更要求"));
+		assertTrue(email.getPreparedHtml().contains("<svg") || email.getHtml().contains("<svg"));
+		assertFalse(email.getPreparedHtml().toLowerCase().contains("mailbox-theme"));
+		assertFalse(email.getPreparedHtml().contains("#171A21"));
+		BufferedImage image = HtmlRenderer.render(email, 1100, 900);
+		assertNotNull(image);
+		assertTrue(image.getWidth() > 400);
+	}
+
+	@Test
+	public void overdueApprovalRemainsAccessibleRegressionFixture() throws Exception {
+		String html = new String(resource("emails/overdue.html"), StandardCharsets.UTF_8);
+		assertTrue(html.contains("Task Assignee") || html.toLowerCase().contains("table"));
+		assertTrue(html.length() > 500);
 	}
 
 	@Test

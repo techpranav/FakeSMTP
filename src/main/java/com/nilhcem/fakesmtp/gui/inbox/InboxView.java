@@ -13,6 +13,7 @@ import java.util.Map;
 
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
+import javax.swing.JLayeredPane;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
@@ -66,6 +67,8 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 	private final JLabel statusPathLabel = new JLabel(" ");
 	private final JLabel statusCountLabel = new JLabel(" ");
 	private final JLabel logTitle = new JLabel(InboxText.get("folder.log"));
+	private final JLayeredPane layers = new JLayeredPane();
+	private JSplitPane workspace;
 	private final Runnable testNotification;
 
 	public InboxView(LegacyControls controls, InboxModel model, InboxBridge bridge, InAppToast toast, WindowRef window,
@@ -81,7 +84,7 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 		header = new InboxHeader(controls);
 		sidebar = new InboxSidebar(model);
 		reader = new MessageReaderPanel(this);
-		list = new MessageListPanel(model, reader);
+		list = new MessageListPanel(model, reader, this);
 		header.setSettingsAction(this::openSettings);
 		header.setThemeChanged(this::changeTheme);
 		header.setCopyConnectionAction(this::copyConnection);
@@ -110,11 +113,34 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 		body.setResizeWeight(0);
 		body.setContinuousLayout(true);
 		body.setOneTouchExpandable(true);
+		workspace = body;
 		setBackground(UiTokens.APP_BG);
+		// Null-layout layered pane: workspace always fills; toast is positioned, never reserved.
+		layers.setLayout(null);
+		layers.add(body, Integer.valueOf(JLayeredPane.DEFAULT_LAYER));
+		layers.add(toast, Integer.valueOf(JLayeredPane.PALETTE_LAYER));
+		layers.addComponentListener(new ComponentAdapter() {
+			@Override
+			public void componentResized(ComponentEvent event) {
+				layoutOverlay();
+			}
+		});
+		toast.addComponentListener(new ComponentAdapter() {
+			@Override
+			public void componentShown(ComponentEvent event) {
+				layoutOverlay();
+			}
+
+			@Override
+			public void componentHidden(ComponentEvent event) {
+				layoutOverlay();
+			}
+		});
 		addComponentListener(new ComponentAdapter() {
 			@Override
 			public void componentResized(ComponentEvent event) {
 				SwingUtilities.invokeLater(() -> {
+					layoutOverlay();
 					body.revalidate();
 					messages.revalidate();
 					reader.revalidate();
@@ -124,17 +150,26 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 				});
 			}
 		});
+
 		add(header, BorderLayout.NORTH);
-		add(body, BorderLayout.CENTER);
-		JPanel south = new JPanel(new BorderLayout());
-		south.setOpaque(false);
-		JPanel toastTray = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 12, 4));
-		toastTray.setOpaque(false);
-		toastTray.add(toast);
-		south.add(toastTray, BorderLayout.NORTH);
-		south.add(buildStatusBar(), BorderLayout.SOUTH);
-		add(south, BorderLayout.SOUTH);
+		add(layers, BorderLayout.CENTER);
+		add(buildStatusBar(), BorderLayout.SOUTH);
 		applyTheme();
+	}
+
+	private void layoutOverlay() {
+		int width = layers.getWidth();
+		int height = layers.getHeight();
+		if (width <= 0 || height <= 0 || workspace == null) {
+			return;
+		}
+		workspace.setBounds(0, 0, width, height);
+		Dimension toastSize = toast.getPreferredSize();
+		int toastWidth = toastSize.width;
+		int toastHeight = toastSize.height;
+		int x = Math.max(8, width - toastWidth - 16);
+		int y = Math.max(8, height - toastHeight - 16);
+		toast.setBounds(x, y, toastWidth, toastHeight);
 	}
 
 	public void applyTheme() {
@@ -151,6 +186,7 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 		statusPathLabel.setForeground(UiTokens.TEXT);
 		statusCountLabel.setForeground(UiTokens.TEXT_SECONDARY);
 		logTitle.setForeground(UiTokens.TEXT);
+		layoutOverlay();
 		revalidate();
 		repaint();
 	}
@@ -285,7 +321,7 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 
 	@Override
 	public void saveAsMsg(InboxMessage message) {
-		exportFile(message, "msg", "Outlook message (*.msg)", new Exporter() {
+		exportFile(message, "msg", "Outlook message (*.msg)", null, new Exporter() {
 			@Override
 			public void export(InboxMessage source, File file) throws IOException {
 				EmailExport.saveAsMsg(source, file);
@@ -295,7 +331,7 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 
 	@Override
 	public void saveAsEml(InboxMessage message) {
-		exportFile(message, "eml", "Email message (*.eml)", new Exporter() {
+		exportFile(message, "eml", "Email message (*.eml)", null, new Exporter() {
 			@Override
 			public void export(InboxMessage source, File file) throws IOException {
 				EmailExport.saveAsEml(source, file);
@@ -305,7 +341,7 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 
 	@Override
 	public void saveScreenshot(InboxMessage message) {
-		exportFile(message, "png", "PNG image (*.png)", new Exporter() {
+		exportFile(message, "png", "PNG image (*.png)", "MailBox_Email", new Exporter() {
 			@Override
 			public void export(InboxMessage source, File file) throws IOException {
 				EmailExport.saveScreenshot(source, file);
@@ -327,11 +363,12 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 		}
 	}
 
-	private void exportFile(InboxMessage message, String extension, String filterLabel, Exporter exporter) {
+	private void exportFile(InboxMessage message, String extension, String filterLabel, String prefix,
+			Exporter exporter) {
 		if (message == null || message.getParsed() == null) {
 			return;
 		}
-		String base = safeFileBase(message);
+		String base = EmailExport.suggestedFileBase(message, prefix);
 		JFileChooser chooser = new JFileChooser();
 		chooser.setSelectedFile(new File(base + "." + extension));
 		chooser.setFileFilter(new FileNameExtensionFilter(filterLabel, extension));
@@ -346,29 +383,39 @@ public final class InboxView extends JPanel implements InboxListener, MessageAct
 		if (!name.toLowerCase(java.util.Locale.ROOT).endsWith("." + extension)) {
 			file = new File(file.getParentFile(), name + "." + extension);
 		}
-		try {
-			exporter.export(message, file);
-			toast.showToast(InboxText.get("reader.export.saved").replace("{0}", file.getName()),
-					file.getAbsolutePath(), "info");
-		} catch (IOException e) {
-			LOGGER.warn("Could not export the message", e);
-			JOptionPane.showMessageDialog(this, InboxText.get("reader.export.failed") + "\n" + e.getMessage());
+		if (file.exists()) {
+			int confirm = JOptionPane.showConfirmDialog(this,
+					InboxText.format("reader.export.overwrite", file.getName()),
+					InboxText.get("reader.export.overwrite.title"),
+					JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+			if (confirm != JOptionPane.YES_OPTION) {
+				return;
+			}
 		}
-	}
+		final File target = file;
+		setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.WAIT_CURSOR));
+		new javax.swing.SwingWorker<Void, Void>() {
+			@Override
+			protected Void doInBackground() throws Exception {
+				exporter.export(message, target);
+				return null;
+			}
 
-	private static String safeFileBase(InboxMessage message) {
-		String subject = message.getParsed() == null ? null : message.getParsed().getSubject();
-		if (Texts.isBlank(subject)) {
-			subject = "email";
-		}
-		String cleaned = subject.replaceAll("[\\\\/:*?\"<>|]+", "_").trim();
-		if (cleaned.length() > 60) {
-			cleaned = cleaned.substring(0, 60).trim();
-		}
-		if (Texts.isBlank(cleaned)) {
-			cleaned = "email";
-		}
-		return cleaned;
+			@Override
+			protected void done() {
+				setCursor(java.awt.Cursor.getDefaultCursor());
+				try {
+					get();
+					toast.showToast(InboxText.get("reader.export.saved").replace("{0}", target.getName()),
+							target.getAbsolutePath(), "info");
+				} catch (Exception e) {
+					Throwable cause = e.getCause() == null ? e : e.getCause();
+					LOGGER.warn("Could not export the message", cause);
+					JOptionPane.showMessageDialog(InboxView.this,
+							InboxText.get("reader.export.failed") + "\n" + cause.getMessage());
+				}
+			}
+		}.execute();
 	}
 
 	private interface Exporter {

@@ -16,11 +16,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Shows a native notification when the desktop supports one, and always shows an in-window toast.
+ * Shows a desktop notification when enabled, and optionally an in-window toast.
  * <p>
- * On Windows and macOS the system tray balloon is used when available. Tray balloons are unreliable
- * on some Windows builds, so the in-application toast is shown as well. On Linux, {@code notify-send}
- * is tried when there is no tray. Activating a tray icon or the in-window toast selects the message.
+ * On Windows, prefers WinRT Action Center toasts via {@link WindowsToastNotifier},
+ * then falls back to the system tray balloon. Tray / in-app activation selects the message.
  * </p>
  *
  * @since 2.1
@@ -32,6 +31,7 @@ public final class DesktopNotificationBackend implements NotificationBackend {
 
 	private final InAppToast toast;
 	private final Image icon;
+	private final WindowsToastNotifier windowsToast = new WindowsToastNotifier();
 	private TrayIcon trayIcon;
 	private String latestId;
 	private Boolean notifySendAvailable;
@@ -58,8 +58,13 @@ public final class DesktopNotificationBackend implements NotificationBackend {
 				.getBoolean(com.nilhcem.fakesmtp.core.UISettings.NOTIFICATIONS_INAPP);
 		if (desktop) {
 			try {
-				showTray(title, body);
-				showNotifySend(title, body);
+				boolean shown = showWindowsToast(title, body);
+				if (!shown) {
+					shown = showTray(title, body);
+				}
+				if (!shown) {
+					showNotifySend(title, body);
+				}
 			} catch (RuntimeException e) {
 				LOGGER.warn("Desktop notification failed; using the in-application notice", e);
 				if (!inApp) {
@@ -70,6 +75,17 @@ public final class DesktopNotificationBackend implements NotificationBackend {
 		if (inApp) {
 			SwingUtilities.invokeLater(() -> toast.showToast(title, body, messageId));
 		}
+	}
+
+	private boolean showWindowsToast(String title, String body) {
+		if (!windowsToast.isSupported()) {
+			return false;
+		}
+		String[] lines = body == null ? new String[0] : body.split("\\R", 4);
+		String line1 = lines.length > 0 ? lines[0] : "";
+		String line2 = lines.length > 1 ? lines[1] : "";
+		String line3 = lines.length > 2 ? lines[2] : "";
+		return windowsToast.show(title, line1, line2, line3);
 	}
 
 	private boolean showTray(String title, String body) {

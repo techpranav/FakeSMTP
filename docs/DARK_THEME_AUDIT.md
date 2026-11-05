@@ -60,3 +60,9 @@ Captured:
 Confirmed: sidebar/list/reader chrome/status dark; HTML email white surface preserved; live switch to Light intact.
 
 Not physically tested as native modes: 1920×1080, 2560×1440 (primary logical ~1536×864).
+
+## Follow-up (responsive iteration)
+
+See `docs/RESPONSIVE_UI_VALIDATION.md` for toast overlay, list overflow, and attachment wrapping.
+
+Theme isolation still holds: HTML email surface stays white in both Light and Dark. Live switch remains intact; applying the theme is deferred with `SwingUtilities.invokeLater` so FlatLaf does not repaint a disposed combo popup.

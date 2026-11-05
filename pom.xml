@@ -15,7 +15,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
 		<docker.image>mailbox</docker.image>
-		<!-- ULM license-sdk requires Java 17+; application and tests target the same release. -->
+		<!-- ULM license-sdk requires Java 17+. Bytecode targets 17 so the JAR runs on Java 17+. -->
 		<maven.compiler.release>17</maven.compiler.release>
 	</properties>
 
@@ -57,7 +57,7 @@
 		<dependency>
 		    <groupId>commons-io</groupId>
 		    <artifactId>commons-io</artifactId>
-		    <version>2.4</version>
+		    <version>2.16.1</version>
 		</dependency>
 
 		<!-- Commons CLI: API for presenting, processing and validating a command line interface -->
@@ -102,7 +102,7 @@
 			<version>1.7.2</version>
 		</dependency>
 
-		<!-- jotlmsg: write Outlook .msg files (Java 8-compatible 1.x line) -->
+		<!-- jotlmsg 1.x: genuine Outlook .msg on Java 8+ (HTML attached as message-body.html; 3.x needs JDK 21) -->
 		<dependency>
 			<groupId>ch.astorm</groupId>
 			<artifactId>jotlmsg</artifactId>

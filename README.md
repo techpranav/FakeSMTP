@@ -15,8 +15,8 @@ MailBox originated from the [FakeSMTP](https://github.com/Nilhcem/FakeSMTP) proj
 Requirements
 ------------
 
-- **Java 8 or newer** to run the jar (also works on Java 11, 17, and 21)
-- **JDK 8+ and Maven 3.9+** to build from source
+- **Java 17 or newer** to run the jar (ULM licensing requires 17+; bytecode is compiled for 17)
+- **JDK 17+ and Maven 3.9+** to build from source
 
 On Unix-like systems you may need root (or another port ≥ 1024) to bind port 25.
 
@@ -36,9 +36,11 @@ HTML email rendering (tables, links, and charts):
 
 ![Rendered overdue-approval email](docs/images/overdue-approval.png)
 
-Desktop notification (in-window toast; tray balloon is also used when the OS supports it):
+Desktop notification (Windows Action Center toast when available, plus in-window toast / tray fallback):
 
 ![New mail notification toast](docs/images/screenshot-notification.png)
+
+See also: [EMAIL_EXPORT.md](docs/EMAIL_EXPORT.md), [DESKTOP_NOTIFICATIONS.md](docs/DESKTOP_NOTIFICATIONS.md), [EMAIL_ADDRESS_HYPERLINKS.md](docs/EMAIL_ADDRESS_HYPERLINKS.md), [EMAIL_SCREENSHOT_CAPTURE.md](docs/EMAIL_SCREENSHOT_CAPTURE.md).
 
 
 Build the jar
@@ -76,7 +78,7 @@ target/MailBox.jar
 
 1. Open [techpranav/MailBox](https://github.com/techpranav/MailBox).
 2. Download `MailBox.jar`.
-3. Keep Java 8+ installed on the machine that will run it.
+3. Keep Java 17+ installed on the machine that will run it (`java -version`).
 
 ### From this repository (developers)
 
@@ -134,10 +136,11 @@ Inbox features
 - Search, sort (newest / oldest / subject / sender / flagged), refresh (`F5`)
 - **Send test email** (HTML, links, table, chart, attachments) without an SMTP client
 - HTML / plain text / headers / raw MIME views; flag messages from the reading pane
-- Export: Outlook `.msg`, `.eml`, and full-height HTML PNG screenshot
+- Export: genuine Outlook `.msg` (HTML body), original `.eml`, and complete email PNG (subject/recipients/body)
 - Safe HTML: no JavaScript, remote images blocked until you allow them
 - Tables, links, CID images, SVG charts (rasterized)
-- Desktop notifications (tray + in-window toast) with optional sound
+- Desktop notifications (Windows toast + tray + in-window) with privacy mode and optional sound
+- Clickable From / To / CC / BCC `mailto:` links in the reading header
 - **Test desktop notification** in Settings
 - Copy message, open emails folder, mark all read (`Ctrl+Shift+A`), delete (`Delete`)
 - Light / dark theme

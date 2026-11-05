@@ -19,4 +19,13 @@ public interface NotificationPreferences {
 	boolean notifyWhenFocused();
 
 	boolean applicationFocused();
+
+	/** Include the sender line in desktop / in-app notification text. */
+	boolean showSender();
+
+	/** Include the subject line in notification text. */
+	boolean showSubject();
+
+	/** Hide subject and preview for privacy (sender may still show). */
+	boolean privacyMode();
 }

@@ -37,18 +37,39 @@ public final class NewMailNotifier {
 			if (preferences.applicationFocused() && !preferences.notifyWhenFocused()) {
 				return;
 			}
-			String subject = message.getParsed().getSubject();
-			if (Texts.isBlank(subject)) {
-				subject = "(no subject)";
+			StringBuilder body = new StringBuilder();
+			boolean privacy = preferences.privacyMode();
+			if (preferences.showSender()) {
+				body.append("From: ").append(blank(message.getParsed().senderLine()));
 			}
-			String body = "From: " + blank(message.getParsed().senderLine()) + "\nSubject: " + subject;
-			if (preferences.previewEnabled()) {
+			if (!privacy && preferences.showSubject()) {
+				String subject = message.getParsed().getSubject();
+				if (Texts.isBlank(subject)) {
+					subject = "(no subject)";
+				}
+				if (body.length() > 0) {
+					body.append('\n');
+				}
+				body.append("Subject: ").append(subject);
+			} else if (privacy) {
+				if (body.length() > 0) {
+					body.append('\n');
+				}
+				body.append("New message (preview hidden)");
+			}
+			if (!privacy && preferences.previewEnabled()) {
 				String preview = message.getParsed().getPreview();
 				if (!Texts.isBlank(preview)) {
-					body = body + "\n" + preview;
+					if (body.length() > 0) {
+						body.append('\n');
+					}
+					body.append(preview);
 				}
 			}
-			backend.show("New email received", body, message.getId());
+			if (body.length() == 0) {
+				body.append("New email received");
+			}
+			backend.show("New email received", body.toString(), message.getId());
 			if (preferences.soundEnabled()) {
 				beep();
 			}

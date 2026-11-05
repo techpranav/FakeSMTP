@@ -17,6 +17,7 @@ import javax.swing.JPanel;
 import javax.swing.JSeparator;
 import javax.swing.JToggleButton;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,7 +112,9 @@ public final class InboxHeader extends JPanel {
 		}
 		theme.addActionListener(event -> {
 			if (themeChanged != null) {
-				themeChanged.run();
+				// Apply after the combo popup has closed so FlatLaf does not
+				// repaint a disposed popup ("this.comboBox is null").
+				SwingUtilities.invokeLater(themeChanged);
 			}
 		});
 
