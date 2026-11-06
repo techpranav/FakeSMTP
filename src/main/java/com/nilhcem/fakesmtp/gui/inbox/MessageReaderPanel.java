@@ -71,13 +71,18 @@ public final class MessageReaderPanel extends JPanel {
 	private final JToggleButton rawButton = new JToggleButton(InboxText.get("reader.raw"));
 	private final JButton readButton = new JButton(InboxText.get("reader.markUnread"));
 	private final JButton flagButton = new JButton(InboxText.get("reader.flag"));
+	private final JPanel tools = new JPanel(new BorderLayout());
+	private final JPanel headingPad = new JPanel(new BorderLayout());
+	private final JPanel content = new JPanel(new BorderLayout());
+	private final EmptyState emptyState = new EmptyState(InboxText.get("list.empty.selection.title"),
+			InboxText.get("list.empty.selection.text"));
 	private InboxMessage current;
+	private int lastAttachmentWidth;
 
 	public MessageReaderPanel(MessageActions actions) {
 		super(new BorderLayout());
 		this.actions = actions;
 		setOpaque(true);
-		setBackground(UiTokens.SURFACE);
 		setMinimumSize(new Dimension(320, 200));
 		attachmentBox.setLayout(new BoxLayout(attachmentBox, BoxLayout.Y_AXIS));
 		attachmentBox.setOpaque(false);
@@ -87,7 +92,19 @@ public final class MessageReaderPanel extends JPanel {
 		attachmentScroll.getViewport().setOpaque(false);
 		attachmentScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 		attachmentScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
-		attachmentScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
+		attachmentScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 160));
+		attachmentScroll.getViewport().addComponentListener(new java.awt.event.ComponentAdapter() {
+			@Override
+			public void componentResized(java.awt.event.ComponentEvent event) {
+				int width = attachmentScroll.getViewport().getWidth();
+				if (Math.abs(width - lastAttachmentWidth) < 12) {
+					return;
+				}
+				if (current != null && current.getParsed() != null && current.getParsed().hasAttachments()) {
+					fillAttachments(current.getParsed());
+				}
+			}
+		});
 		htmlView.setLoadImages(() -> {
 			if (current != null) {
 				actions.loadExternalImages(current);
@@ -161,17 +178,12 @@ public final class MessageReaderPanel extends JPanel {
 		actionGroup.add(readButton);
 		actionGroup.add(flagButton);
 		actionGroup.add(moreButton);
-		JPanel tools = new JPanel(new BorderLayout());
 		tools.setOpaque(true);
-		tools.setBackground(UiTokens.APP_BG);
-		tools.setBorder(BorderFactory.createCompoundBorder(
-				UiTokens.bottomHairline(),
-				BorderFactory.createEmptyBorder(6, 12, 6, 12)));
 		tools.add(viewGroup, BorderLayout.WEST);
 		tools.add(actionGroup, BorderLayout.EAST);
 
 		body.setOpaque(true);
-		body.setBackground(Color.WHITE);
+		body.setBackground(UiTokens.EMAIL_SURFACE);
 		body.setMinimumSize(new Dimension(200, 120));
 		body.add(htmlView, "html");
 		body.add(scroll(plain), "text");
@@ -186,8 +198,7 @@ public final class MessageReaderPanel extends JPanel {
 		heading.add(headerPanel);
 		heading.add(attachmentScroll);
 
-		JPanel headingPad = new JPanel(new BorderLayout());
-		headingPad.setOpaque(false);
+		headingPad.setOpaque(true);
 		headingPad.setBorder(BorderFactory.createEmptyBorder(UiTokens.SPACE_SM, UiTokens.SPACE_MD, UiTokens.SPACE_XS, UiTokens.SPACE_MD));
 		headingPad.add(heading, BorderLayout.CENTER);
 
@@ -196,15 +207,42 @@ public final class MessageReaderPanel extends JPanel {
 		top.add(tools, BorderLayout.NORTH);
 		top.add(headingPad, BorderLayout.CENTER);
 
-		JPanel content = new JPanel(new BorderLayout());
 		content.setOpaque(true);
-		content.setBackground(UiTokens.SURFACE);
 		content.add(top, BorderLayout.NORTH);
 		content.add(body, BorderLayout.CENTER);
 		outerCards.add(content, "message");
-		outerCards.add(new EmptyState(InboxText.get("list.empty.selection.title"), InboxText.get("list.empty.selection.text")), "empty");
+		outerCards.add(emptyState, "empty");
 		add(outerCards, BorderLayout.CENTER);
+		applyTheme();
 		showNone();
+	}
+
+	public void applyTheme() {
+		setBackground(UiTokens.READER_CHROME_BG);
+		content.setBackground(UiTokens.READER_CHROME_BG);
+		tools.setBackground(UiTokens.SURFACE_ALT);
+		tools.setBorder(BorderFactory.createCompoundBorder(
+				UiTokens.bottomHairline(),
+				BorderFactory.createEmptyBorder(6, 12, 6, 12)));
+		headingPad.setBackground(UiTokens.READER_CHROME_BG);
+		headerPanel.applyTheme();
+		emptyState.applyTheme();
+		styleTextArea(plain);
+		styleTextArea(headers);
+		styleTextArea(raw);
+		// HTML email surface stays independent of the app theme.
+		body.setBackground(UiTokens.EMAIL_SURFACE);
+		if (current != null && current.getParsed() != null) {
+			fillAttachments(current.getParsed());
+		}
+		revalidate();
+		repaint();
+	}
+
+	private static void styleTextArea(JTextArea area) {
+		area.setBackground(UiTokens.SURFACE);
+		area.setForeground(UiTokens.TEXT);
+		area.setCaretColor(UiTokens.TEXT);
 	}
 
 	public void showNone() {
@@ -298,30 +336,42 @@ public final class MessageReaderPanel extends JPanel {
 		JLabel title = new JLabel(InboxText.get("attach.title"));
 		title.setFont(title.getFont().deriveFont(Font.BOLD, 12f));
 		title.setForeground(UiTokens.TEXT);
+		title.setOpaque(false);
 		JButton saveAll = tiny(InboxText.get("attach.saveAll"));
 		saveAll.addActionListener(event -> saveAll(parsed));
 		titleRow.add(title, BorderLayout.WEST);
 		titleRow.add(saveAll, BorderLayout.EAST);
 		attachmentBox.add(titleRow);
 		attachmentBox.add(Box.createVerticalStrut(UiTokens.SPACE_XS));
-		JPanel cards = new JPanel(new FlowLayout(FlowLayout.LEFT, UiTokens.SPACE_SM, UiTokens.SPACE_XS));
+		int available = attachmentScroll.getViewport().getWidth();
+		if (available < 180) {
+			available = Math.max(180, getWidth() - 40);
+		}
+		lastAttachmentWidth = available;
+		int gap = UiTokens.SPACE_SM;
+		int perRow = Math.max(1, (available + gap) / (UiTokens.ATTACH_CARD_WIDTH + gap));
+		int cardWidth = Math.min(UiTokens.ATTACH_CARD_WIDTH,
+				Math.max(160, (available - gap * (perRow - 1)) / perRow));
+		JPanel cards = new JPanel(new FlowLayout(FlowLayout.LEFT, gap, UiTokens.SPACE_XS));
 		cards.setOpaque(false);
 		cards.setAlignmentX(LEFT_ALIGNMENT);
 		for (MailAttachment attachment : parsed.getAttachments()) {
-			cards.add(attachmentCard(attachment));
+			cards.add(attachmentCard(attachment, cardWidth));
 		}
 		attachmentBox.add(cards);
 		attachmentBox.revalidate();
-		int height = Math.min(118, Math.max(UiTokens.ATTACH_CARD_HEIGHT + 24, attachmentBox.getPreferredSize().height + 4));
+		int rows = (parsed.getAttachments().size() + perRow - 1) / perRow;
+		int height = Math.min(160, 28 + rows * (UiTokens.ATTACH_CARD_HEIGHT + UiTokens.SPACE_XS + 4));
 		attachmentScroll.setPreferredSize(new Dimension(10, height));
 	}
 
-	private JPanel attachmentCard(MailAttachment attachment) {
+	private JPanel attachmentCard(MailAttachment attachment, int cardWidth) {
 		JPanel card = new JPanel(new BorderLayout(UiTokens.SPACE_SM, 0));
 		card.setOpaque(true);
-		card.setBackground(UiTokens.APP_BG);
+		card.setBackground(UiTokens.SURFACE_ALT);
 		card.setBorder(UiTokens.cardBorder());
-		card.setPreferredSize(new Dimension(UiTokens.ATTACH_CARD_WIDTH, UiTokens.ATTACH_CARD_HEIGHT));
+		card.setPreferredSize(new Dimension(cardWidth, UiTokens.ATTACH_CARD_HEIGHT));
+		card.setMaximumSize(new Dimension(cardWidth, UiTokens.ATTACH_CARD_HEIGHT));
 		card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 		card.addMouseListener(new MouseAdapter() {
 			@Override
@@ -331,7 +381,7 @@ public final class MessageReaderPanel extends JPanel {
 
 			@Override
 			public void mouseExited(MouseEvent event) {
-				card.setBackground(UiTokens.APP_BG);
+				card.setBackground(UiTokens.SURFACE_ALT);
 			}
 		});
 
@@ -349,10 +399,8 @@ public final class MessageReaderPanel extends JPanel {
 		JPanel meta = new JPanel(new BorderLayout(0, 1));
 		meta.setOpaque(false);
 		String rawName = attachment.getFileName();
-		String displayName = rawName;
-		if (displayName != null && displayName.length() > 26) {
-			displayName = displayName.substring(0, 25) + "\u2026";
-		}
+		int nameBudget = Math.max(8, (cardWidth - 56) / 7);
+		String displayName = TextFit.ellipsizeChars(rawName == null ? "attachment" : rawName, nameBudget);
 		JLabel name = new JLabel(displayName == null ? "attachment" : displayName);
 		name.setToolTipText(rawName);
 		name.setForeground(UiTokens.TEXT);
@@ -509,6 +557,7 @@ public final class MessageReaderPanel extends JPanel {
 		area.setWrapStyleWord(true);
 		area.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
 		area.setBorder(BorderFactory.createEmptyBorder(12, 16, 12, 16));
+		styleTextArea(area);
 		return area;
 	}
 

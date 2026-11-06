@@ -47,7 +47,13 @@ public final class ScrollableHtmlPanel extends XHTMLPanel implements Scrollable 
 
 	@Override
 	public boolean getScrollableTracksViewportWidth() {
-		return true;
+		java.awt.Container parent = getParent();
+		if (!(parent instanceof javax.swing.JViewport)) {
+			return true;
+		}
+		int viewportWidth = parent.getWidth();
+		int preferredWidth = getPreferredSize().width;
+		return preferredWidth <= viewportWidth;
 	}
 
 	@Override

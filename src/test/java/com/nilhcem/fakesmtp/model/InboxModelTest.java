@@ -58,8 +58,10 @@ public class InboxModelTest {
 	@Test
 	public void ignoresADuplicateSavedFile() {
 		InboxModel model = new InboxModel();
-		InboxMessage first = message("a@example.com", "b@example.com", "One", new Date(), false, false);
-		InboxMessage duplicate = message("a@example.com", "b@example.com", "One", new Date(), false, false);
+		Date when = new Date();
+		InboxMessage first = message("a@example.com", "b@example.com", "One", when, false, false);
+		InboxMessage duplicate = message("a@example.com", "b@example.com", "One", when, false, false);
+		duplicate.getEmail().setFilePath(first.getFilePath());
 		assertEquals(first, model.add(first));
 		assertNull(model.add(duplicate));
 		assertEquals(1, model.getTotalCount());
@@ -87,6 +89,29 @@ public class InboxModelTest {
 		assertEquals(older.getId(), model.visibleMessages().get(0).getId());
 	}
 
+	@Test
+	public void searchAndSortCombine() {
+		InboxModel model = new InboxModel();
+		InboxMessage zebra = message("Zebra <z@example.com>", "qa@example.com", "Alpha subject", hoursAgo(3), false, false);
+		InboxMessage ada = message("Ada <ada@example.com>", "qa@example.com", "Alpha subject", hoursAgo(1), false, false);
+		InboxMessage other = message("Bob <bob@example.com>", "qa@example.com", "Beta subject", hoursAgo(2), false, false);
+		model.add(zebra);
+		model.add(ada);
+		model.add(other);
+
+		model.setQuery("alpha");
+		model.setSortMode(SortMode.SENDER_ASC);
+		List<InboxMessage> found = model.visibleMessages();
+		assertEquals(2, found.size());
+		assertEquals(ada.getId(), found.get(0).getId());
+		assertEquals(zebra.getId(), found.get(1).getId());
+
+		model.setSortMode(SortMode.SENDER_DESC);
+		found = model.visibleMessages();
+		assertEquals(zebra.getId(), found.get(0).getId());
+		assertEquals(ada.getId(), found.get(1).getId());
+	}
+
 	private static InboxMessage message(String from, String to, String subject, Date received, boolean unread, boolean attachment) {
 		EmailModel email = new EmailModel();
 		email.setFrom(from);
@@ -94,7 +119,7 @@ public class InboxModelTest {
 		email.setSubject(subject);
 		email.setReceivedDate(received);
 		email.setEmailStr("Subject: " + subject);
-		email.setFilePath("memory-" + subject + "-" + unread);
+		email.setFilePath("memory-" + from + "-" + subject + "-" + received.getTime());
 		ParsedEmail.Builder builder = ParsedEmail.builder()
 				.subject(subject)
 				.preview(subject)

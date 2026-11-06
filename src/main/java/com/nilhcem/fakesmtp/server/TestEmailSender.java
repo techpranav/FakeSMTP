@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 import com.nilhcem.fakesmtp.mail.TestEmailFactory;
 
 /**
- * Injects the built-in sample email through the same save path as real SMTP mail.
+ * Injects built-in sample emails through the same save path as real SMTP mail.
  *
  * @since 2.1
  */
@@ -22,6 +22,10 @@ public final class TestEmailSender {
 
 	public static void sendSample() throws IOException {
 		try {
+			SMTPServerHandler.INSTANCE.getMailSaver().saveEmailAndNotify(
+					"Enovia@technia.com",
+					"KTApprove02@kla-tencor.com",
+					TestEmailFactory.createOverdueApprovalMessage());
 			SMTPServerHandler.INSTANCE.getMailSaver().saveEmailAndNotify(
 					"tester@mailbox.local",
 					"developer@example.com",

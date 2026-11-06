@@ -24,3 +24,7 @@ emails-recus/*
 *.ulmkey
 *.lic
 target/ulm-dist/
+
+# Local ULM sidecar overrides (do not commit generated keys/licenses)
+/ulm/
+

@@ -1,127 +1,106 @@
 package com.nilhcem.fakesmtp.mail;
 
-import java.io.ByteArrayInputStream;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
-import ch.astorm.jotlmsg.OutlookMessage;
-import ch.astorm.jotlmsg.OutlookMessageRecipient;
+import javax.imageio.ImageIO;
 
 import com.nilhcem.fakesmtp.core.Texts;
 import com.nilhcem.fakesmtp.model.InboxMessage;
 
 /**
- * Saves a received message as Outlook {@code .msg}, {@code .eml}, or a full-page PNG.
+ * Saves a received message as Outlook {@code .msg}, {@code .eml}, or a full-page PNG
+ * that includes metadata plus the complete HTML body.
  *
  * @since 2.1
  */
 public final class EmailExport {
-
-	private static final int SCREENSHOT_WIDTH = 900;
-	private static final int MAX_SCREENSHOT_HEIGHT = 20000;
 
 	private EmailExport() {
 		throw new UnsupportedOperationException();
 	}
 
 	/**
-	 * Writes an Outlook {@code .msg} file with subject, recipients, plain text, and attachments.
-	 * The original HTML is also attached as {@code message-body.html} so formatting is preserved
-	 * when the jotlmsg Java 8 API cannot embed HTML as the primary body.
+	 * Writes an Outlook-openable {@code .msg} with From/To/CC display fields, HTML body,
+	 * and attachments (via {@link OutlookMsgWriter}).
 	 */
 	public static void saveAsMsg(InboxMessage message, File file) throws IOException {
-		if (message == null || message.getParsed() == null) {
-			throw new IOException("No message to export");
-		}
-		ParsedEmail parsed = message.getParsed();
-		OutlookMessage outlook = new OutlookMessage();
-		outlook.setSubject(Texts.isBlank(parsed.getSubject()) ? "(no subject)" : parsed.getSubject());
-		if (!Texts.isBlank(parsed.getPlainText())) {
-			outlook.setPlainTextBody(parsed.getPlainText());
-		} else if (!Texts.isBlank(parsed.getHtml())) {
-			outlook.setPlainTextBody(stripTags(parsed.getHtml()));
-		} else {
-			outlook.setPlainTextBody(message.getRaw());
-		}
-		EmailAddress from = first(parsed.getFrom());
-		if (from != null && !Texts.isBlank(from.getAddress())) {
-			if (!Texts.isBlank(from.getPersonal())) {
-				outlook.setFrom(from.getPersonal() + " <" + from.getAddress() + ">");
-			} else {
-				outlook.setFrom(from.getAddress());
-			}
-		}
-		addRecipients(outlook, OutlookMessageRecipient.Type.TO, parsed.getTo());
-		addRecipients(outlook, OutlookMessageRecipient.Type.CC, parsed.getCc());
-		addRecipients(outlook, OutlookMessageRecipient.Type.BCC, parsed.getBcc());
-		if (!Texts.isBlank(parsed.getHtml())) {
-			byte[] htmlBytes = parsed.getHtml().getBytes(StandardCharsets.UTF_8);
-			outlook.addAttachment("message-body.html", "text/html", new ByteArrayInputStream(htmlBytes));
-		}
-		for (MailAttachment attachment : parsed.getAttachments()) {
-			String name = AttachmentFiles.safeName(attachment.getFileName());
-			String type = attachment.getContentType();
-			if (Texts.isBlank(type)) {
-				type = "application/octet-stream";
-			}
-			outlook.addAttachment(name, type, new ByteArrayInputStream(attachment.getData()));
-		}
-		outlook.writeTo(file);
+		OutlookMsgWriter.write(message, file);
 	}
 
+	/**
+	 * Captures subject, recipients, date and the complete HTML body into one PNG.
+	 * Does not depend on the reading-pane scroll position.
+	 */
 	public static void saveScreenshot(InboxMessage message, File file) throws IOException {
 		if (message == null || message.getParsed() == null) {
 			throw new IOException("No message to export");
 		}
-		ParsedEmail parsed = message.getParsed();
-		if (Texts.isBlank(parsed.getPreparedHtml()) && Texts.isBlank(parsed.getHtml())) {
-			throw new IOException("This message has no HTML body to capture");
+		try {
+			BufferedImage image = EmailScreenshot.capture(message.getParsed());
+			ImageIO.write(image, "png", file);
+		} catch (IllegalArgumentException e) {
+			throw new IOException(e.getMessage() + " Try saving as EML/MSG instead.", e);
 		}
-		if (Texts.isBlank(parsed.getPreparedHtml()) && !Texts.isBlank(parsed.getHtml())) {
-			parsed.applyPrepared(HtmlPreprocessor.prepare(parsed.getHtml(), false));
-		}
-		java.awt.image.BufferedImage image = HtmlRenderer.renderFull(parsed, SCREENSHOT_WIDTH, MAX_SCREENSHOT_HEIGHT);
-		javax.imageio.ImageIO.write(image, "png", file);
 	}
 
 	public static void saveAsEml(InboxMessage message, File file) throws IOException {
 		if (message == null) {
 			throw new IOException("No message to export");
 		}
-		byte[] data = message.getRaw().getBytes(StandardCharsets.UTF_8);
+		String raw = message.getRaw();
+		if (Texts.isBlank(raw)) {
+			throw new IOException("Original MIME source is not available for this message");
+		}
+		byte[] data = raw.getBytes(StandardCharsets.UTF_8);
 		try (FileOutputStream output = new FileOutputStream(file)) {
 			output.write(data);
 		}
 	}
 
-	private static void addRecipients(OutlookMessage outlook, OutlookMessageRecipient.Type type,
-			List<EmailAddress> addresses) {
-		if (addresses == null) {
-			return;
-		}
-		for (EmailAddress address : addresses) {
-			if (address == null || Texts.isBlank(address.getAddress())) {
-				continue;
+	/**
+	 * Builds a default export base name: {@code Subject_yyyyMMdd_HHmmss}.
+	 */
+	public static String suggestedFileBase(InboxMessage message, String prefix) {
+		String subject = "email";
+		Date when = new Date();
+		if (message != null && message.getParsed() != null) {
+			if (!Texts.isBlank(message.getParsed().getSubject())) {
+				subject = message.getParsed().getSubject();
 			}
-			outlook.addRecipient(type, address.getAddress(), address.getPersonal());
+			if (message.getParsed().getReceivedDate() != null) {
+				when = message.getParsed().getReceivedDate();
+			}
 		}
+		String cleaned = sanitizeFileToken(subject);
+		String stamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.ROOT).format(when);
+		if (Texts.isBlank(prefix)) {
+			return cleaned + "_" + stamp;
+		}
+		return sanitizeFileToken(prefix) + "_" + cleaned + "_" + stamp;
 	}
 
-	private static EmailAddress first(List<EmailAddress> addresses) {
-		if (addresses == null || addresses.isEmpty()) {
-			return null;
+	public static String sanitizeFileToken(String value) {
+		if (value == null) {
+			return "email";
 		}
-		return addresses.get(0);
-	}
-
-	private static String stripTags(String html) {
-		return html.replaceAll("(?is)<script.*?>.*?</script>", " ")
-				.replaceAll("(?is)<style.*?>.*?</style>", " ")
-				.replaceAll("(?is)<[^>]+>", " ")
-				.replaceAll("\\s+", " ")
-				.trim();
+		String cleaned = value.replaceAll("[\\\\/:*?\"<>|\\r\\n\\t]+", "_").trim();
+		cleaned = cleaned.replaceAll("\\s+", "_");
+		if (cleaned.length() > 60) {
+			cleaned = cleaned.substring(0, 60).trim();
+		}
+		while (cleaned.endsWith("_") || cleaned.endsWith(".")) {
+			cleaned = cleaned.substring(0, cleaned.length() - 1);
+		}
+		if (Texts.isBlank(cleaned)) {
+			return "email";
+		}
+		return cleaned;
 	}
 }

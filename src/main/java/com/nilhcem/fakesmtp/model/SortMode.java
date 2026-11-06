@@ -8,7 +8,15 @@ package com.nilhcem.fakesmtp.model;
 public enum SortMode {
 	NEWEST_FIRST,
 	OLDEST_FIRST,
+	SENDER_ASC,
+	SENDER_DESC,
+	SUBJECT_ASC,
+	SUBJECT_DESC,
+	/** @deprecated Prefer {@link #SUBJECT_ASC}. Kept for older preferences/tests. */
+	@Deprecated
 	SUBJECT,
+	/** @deprecated Prefer {@link #SENDER_ASC}. Kept for older preferences/tests. */
+	@Deprecated
 	SENDER,
 	FLAGGED_FIRST
 }

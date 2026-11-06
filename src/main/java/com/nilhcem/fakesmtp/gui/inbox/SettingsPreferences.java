@@ -40,4 +40,19 @@ public final class SettingsPreferences implements NotificationPreferences {
 	public boolean applicationFocused() {
 		return window.isFocused();
 	}
+
+	@Override
+	public boolean showSender() {
+		return UISettings.INSTANCE.getBoolean(UISettings.NOTIFICATIONS_SHOW_SENDER);
+	}
+
+	@Override
+	public boolean showSubject() {
+		return UISettings.INSTANCE.getBoolean(UISettings.NOTIFICATIONS_SHOW_SUBJECT);
+	}
+
+	@Override
+	public boolean privacyMode() {
+		return UISettings.INSTANCE.getBoolean(UISettings.NOTIFICATIONS_PRIVACY);
+	}
 }

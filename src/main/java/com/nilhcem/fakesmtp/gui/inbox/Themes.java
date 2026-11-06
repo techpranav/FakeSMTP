@@ -13,7 +13,7 @@ import com.formdev.flatlaf.FlatLightLaf;
 import com.nilhcem.fakesmtp.core.UISettings;
 
 /**
- * Installs the light or dark window theme.
+ * Installs the light or dark window theme and updates MailBox chrome tokens.
  *
  * @since 2.1
  */
@@ -31,6 +31,7 @@ public final class Themes {
 
 	public static void install(boolean dark, Window window) {
 		try {
+			UiTokens.apply(dark);
 			if (dark) {
 				FlatDarkLaf.setup();
 				UISettings.INSTANCE.set(UISettings.THEME, UISettings.THEME_DARK);
@@ -42,6 +43,9 @@ public final class Themes {
 			UIManager.put("Button.arc", Integer.valueOf(UiTokens.RADIUS));
 			UIManager.put("TextComponent.arc", Integer.valueOf(UiTokens.RADIUS));
 			UIManager.put("Component.focusWidth", Integer.valueOf(1));
+			UIManager.put("ScrollBar.thumbArc", Integer.valueOf(999));
+			UIManager.put("ScrollBar.trackArc", Integer.valueOf(999));
+			UIManager.put("SplitPaneDivider.gripDotCount", Integer.valueOf(3));
 			if (window != null) {
 				SwingUtilities.updateComponentTreeUI(window);
 				window.invalidate();

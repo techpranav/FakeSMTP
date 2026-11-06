@@ -9,7 +9,7 @@ The window is a mail client layout: header, sidebar, message list, and reading p
 - Sidebar: Inbox, Unread, Flagged, All Emails, Attachments, and the SMTP log. Each mailbox shows a count.
 - List: sender, subject, preview, time, unread emphasis, flag star, attachment mark. Search covers sender, recipient, subject, and preview. Sort by newest, oldest, subject, sender, or flagged first.
 - Reading pane: HTML, plain text, headers, and raw MIME. Mark read or unread, flag/unflag, delete one message, open the saved `.eml`.
-- Export: **Save as MSG** (Outlook `.msg` with HTML also attached as `message-body.html`), **Save as EML**, and **Save screenshot** (full-height PNG of the HTML body).
+- Export: right-click inbox row or More menu → **Save as MSG** (Outlook `.msg` with HTML body, CID images, SVG charts as PNG, and file attachments), **Save as EML**, and **Save screenshot** (full email PNG with metadata + body).
 - **Send test email** in the header injects a sample multipart message (HTML, links, table, chart, inline image, `sample.txt` / `sample.csv`) so you can check the UI without an SMTP client.
 - Attachments: name, type, size, Content-ID. Save (names are reduced to a single safe file name), open with the system application on an explicit click, and preview images.
 - Empty states for no mail, no search hits, no unread mail, no flagged mail, no attachments, and nothing selected.
@@ -49,6 +49,6 @@ Light is the default. Dark is available from the header. Settings are saved in `
 - Emoji depend on fonts installed on the machine.
 - A tray click selects the most recent notified message.
 - Read/unread and flag state are not kept across restarts.
-- Outlook `.msg` export uses jotlmsg: subject, recipients, plain text, and attachments are written; the HTML body is included as the `message-body.html` attachment (the Java 8 jotlmsg API does not embed HTML as the primary RTF/HTML body).
+- Outlook `.msg` export writes subject, recipients, plain text, binary HTML body + fromhtml RTF, file attachments, and inline embeds (`cid:` / rasterized SVG / `data:` images).
 - Screenshots capture the prepared HTML body only (not the full Swing chrome). Very tall messages are capped at 20 000 px height.
 - The original root `Dockerfile` still downloads the upstream 2.0 zip. The image built from source uses Java 8.

@@ -106,6 +106,14 @@ public final class EmailParser {
 		if (collected.html != null && !collected.html.isEmpty()) {
 			prepared = HtmlPreprocessor.prepare(collected.html, loadRemoteImages);
 		}
+		List<EmailAddress> from = addresses(message.getFrom());
+		List<EmailAddress> to = recipients(message, Message.RecipientType.TO);
+		if (from.isEmpty() && !Texts.isBlank(envelopeFrom)) {
+			from = envelopeAddresses(envelopeFrom);
+		}
+		if (to.isEmpty() && !Texts.isBlank(envelopeTo)) {
+			to = envelopeAddresses(envelopeTo);
+		}
 		ParsedEmail.Builder builder = ParsedEmail.builder()
 				.raw(raw)
 				.envelopeFrom(empty(envelopeFrom))
@@ -114,8 +122,8 @@ public final class EmailParser {
 				.filePath(filePath)
 				.readable(true)
 				.subject(subject)
-				.from(addresses(message.getFrom()))
-				.to(recipients(message, Message.RecipientType.TO))
+				.from(from)
+				.to(to)
 				.cc(recipients(message, Message.RecipientType.CC))
 				.bcc(recipients(message, Message.RecipientType.BCC))
 				.replyTo(addresses(message.getReplyTo()))
@@ -165,13 +173,32 @@ public final class EmailParser {
 		byte[] data = readBytes(part.getInputStream());
 		String contentId = contentId(part);
 		String fileName = fileName(part);
-		boolean inline = contentId != null && !Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition());
-		if (contentId != null) {
+		String contentType = empty(part.getContentType());
+		boolean markedAttachment = Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition());
+		boolean imagePart = isImagePart(contentType, data);
+		// CID images stay available for HTML; office docs / files still appear as attachments
+		// even when disposition=inline so Excel tables and similar embeds are not dropped.
+		if (contentId != null && imagePart) {
 			collected.inlineImages.put(contentId, data);
 		}
-		if (!inline) {
-			collected.attachments.add(new MailAttachment(fileName, empty(part.getContentType()), contentId, data, false));
+		if (markedAttachment || !imagePart || contentId == null) {
+			boolean inlineOnly = contentId != null && imagePart && !markedAttachment;
+			if (!inlineOnly) {
+				collected.attachments.add(new MailAttachment(fileName, contentType, contentId, data,
+						contentId != null && !markedAttachment));
+			}
+		} else if (contentId != null) {
+			// Image with CID and disposition=inline — already stored in inlineImages.
 		}
+	}
+
+	private static boolean isImagePart(String contentType, byte[] data) {
+		String type = contentType == null ? "" : contentType.toLowerCase(java.util.Locale.ROOT);
+		if (type.startsWith("image/")) {
+			return true;
+		}
+		String sniffed = ImageBytes.mimeType(data);
+		return sniffed != null && sniffed.startsWith("image/");
 	}
 
 	private static String text(Part part) throws Exception {
@@ -258,6 +285,20 @@ public final class EmailParser {
 			}
 		}
 		return result;
+	}
+
+	private static List<EmailAddress> envelopeAddresses(String envelope) {
+		List<EmailAddress> result = new ArrayList<EmailAddress>();
+		if (Texts.isBlank(envelope)) {
+			return result;
+		}
+		try {
+			InternetAddress[] parsed = InternetAddress.parse(envelope, false);
+			return addresses(parsed);
+		} catch (Exception e) {
+			result.add(new EmailAddress(null, envelope.trim()));
+			return result;
+		}
 	}
 
 	private static List<HeaderField> headerFields(MimeMessage message) throws MessagingException {

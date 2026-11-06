@@ -60,6 +60,7 @@ public final class FakeSMTP {
 		}
 
 		boolean background = ArgsHandler.INSTANCE.shouldStartInBackground();
+		// Double-click launches via javaw (no console). License dialogs must run before exit.
 		if (!MailBoxLicenseGate.ensureLicensed(!background)) {
 			System.exit(3);
 			return;

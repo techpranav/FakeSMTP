@@ -34,7 +34,11 @@ public final class AvatarLabel extends JComponent {
 	public void setIdentity(String nameOrEmail) {
 		initials = initialsOf(nameOrEmail);
 		int hash = Math.abs(initials.hashCode());
-		fill = new Color(180 + hash % 50, 200 + (hash / 7) % 40, 230 + (hash / 13) % 20);
+		if (UiTokens.isDark()) {
+			fill = new Color(60 + hash % 40, 80 + (hash / 7) % 35, 110 + (hash / 13) % 40);
+		} else {
+			fill = new Color(180 + hash % 50, 200 + (hash / 7) % 40, 230 + (hash / 13) % 20);
+		}
 		ink = UiTokens.AVATAR_FG;
 		repaint();
 	}

@@ -31,9 +31,15 @@ public enum UISettings {
 
 	public static final String THEME = "ui.theme";
 	public static final String NOTIFICATIONS_ENABLED = "notifications.enabled";
+	public static final String NOTIFICATIONS_DESKTOP = "notifications.desktop";
+	public static final String NOTIFICATIONS_INAPP = "notifications.inapp";
+	public static final String NOTIFICATIONS_TOAST_SECONDS = "notifications.toast.seconds";
 	public static final String NOTIFICATIONS_PREVIEW = "notifications.preview";
 	public static final String NOTIFICATIONS_SOUND = "notifications.sound";
 	public static final String NOTIFICATIONS_EVERY_EMAIL = "notifications.every.email";
+	public static final String NOTIFICATIONS_SHOW_SENDER = "notifications.show.sender";
+	public static final String NOTIFICATIONS_SHOW_SUBJECT = "notifications.show.subject";
+	public static final String NOTIFICATIONS_PRIVACY = "notifications.privacy";
 	public static final String EXTERNAL_IMAGES = "reading.external.images";
 	public static final String DEFAULT_VIEW = "reading.default.view";
 	public static final String SORT_NEWEST_FIRST = "list.sort.newest.first";
@@ -55,9 +61,15 @@ public enum UISettings {
 	UISettings() {
 		defaults.setProperty(THEME, THEME_LIGHT);
 		defaults.setProperty(NOTIFICATIONS_ENABLED, "true");
+		defaults.setProperty(NOTIFICATIONS_DESKTOP, "true");
+		defaults.setProperty(NOTIFICATIONS_INAPP, "true");
+		defaults.setProperty(NOTIFICATIONS_TOAST_SECONDS, "8");
 		defaults.setProperty(NOTIFICATIONS_PREVIEW, "true");
 		defaults.setProperty(NOTIFICATIONS_SOUND, "false");
 		defaults.setProperty(NOTIFICATIONS_EVERY_EMAIL, "true");
+		defaults.setProperty(NOTIFICATIONS_SHOW_SENDER, "true");
+		defaults.setProperty(NOTIFICATIONS_SHOW_SUBJECT, "true");
+		defaults.setProperty(NOTIFICATIONS_PRIVACY, "false");
 		defaults.setProperty(EXTERNAL_IMAGES, "false");
 		defaults.setProperty(DEFAULT_VIEW, VIEW_HTML);
 		defaults.setProperty(SORT_NEWEST_FIRST, "true");

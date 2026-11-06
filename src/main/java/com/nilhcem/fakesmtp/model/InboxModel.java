@@ -255,11 +255,17 @@ public final class InboxModel {
 		return new Comparator<InboxMessage>() {
 			@Override
 			public int compare(InboxMessage left, InboxMessage right) {
-				if (sortMode == SortMode.SUBJECT) {
+				if (sortMode == SortMode.SUBJECT || sortMode == SortMode.SUBJECT_ASC) {
 					return compareText(subjectOf(left), subjectOf(right));
 				}
-				if (sortMode == SortMode.SENDER) {
+				if (sortMode == SortMode.SUBJECT_DESC) {
+					return compareText(subjectOf(right), subjectOf(left));
+				}
+				if (sortMode == SortMode.SENDER || sortMode == SortMode.SENDER_ASC) {
 					return compareText(senderOf(left), senderOf(right));
+				}
+				if (sortMode == SortMode.SENDER_DESC) {
+					return compareText(senderOf(right), senderOf(left));
 				}
 				if (sortMode == SortMode.FLAGGED_FIRST) {
 					int flags = Boolean.compare(right.isFlagged(), left.isFlagged());

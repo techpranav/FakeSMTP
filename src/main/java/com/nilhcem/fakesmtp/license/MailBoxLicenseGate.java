@@ -1,24 +1,31 @@
 package com.nilhcem.fakesmtp.license;
 
+import java.awt.EventQueue;
+import java.awt.FileDialog;
+import java.awt.Frame;
 import java.awt.GraphicsEnvironment;
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
-import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
-import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.ulm.license.core.LicenseResult;
+import com.ulm.license.core.MachineId;
 import com.ulm.license.core.TrustedKeys;
 import com.ulm.license.model.LicenseStatus;
 import com.ulm.license.sdk.LicenseManager;
 
 /**
  * Startup license gate for MailBox. The application JAR ships without a license file;
- * a valid ULM {@code MAILBOX} license must be present (or selected via the file dialog)
+ * a valid ULM {@code MAILBOX} license must be present (or selected via the native file dialog)
  * before SMTP or the GUI may start.
  */
 public final class MailBoxLicenseGate {
@@ -33,7 +40,7 @@ public final class MailBoxLicenseGate {
 	}
 
 	/**
-	 * Validates the MailBox license. In GUI mode, offers a file chooser when the license
+	 * Validates the MailBox license. In GUI mode, offers a native file dialog when the license
 	 * is missing, invalid, or expired. In background / headless mode, prints a clear
 	 * error and returns {@code false} (no interactive picker).
 	 *
@@ -54,43 +61,30 @@ public final class MailBoxLicenseGate {
 			return false;
 		}
 
+		prepareUi();
+
 		while (!result.isValid()) {
-			int choice = JOptionPane.showOptionDialog(
-					null,
-					buildDialogMessage(result, licenses),
-					"MailBox — License required",
-					JOptionPane.YES_NO_OPTION,
-					JOptionPane.WARNING_MESSAGE,
-					null,
-					new Object[] {"Select license…", "Exit"},
-					"Select license…");
+			int choice = askSelectOrExit(result, licenses);
 			if (choice != 0) {
 				LOGGER.warn("MailBox startup cancelled: no valid license ({})", result.getStatus());
 				return false;
 			}
 
-			File chosen = chooseLicenseFile();
+			File chosen = chooseLicenseFileNative();
 			if (chosen == null) {
 				continue;
 			}
 
 			result = licenses.installLicense(chosen.toPath());
 			if (!result.isValid()) {
-				JOptionPane.showMessageDialog(
-						null,
-						statusHeadline(result.getStatus()) + "\n\n" + result.getMessage()
-								+ "\n\nSelected file:\n" + chosen.getAbsolutePath(),
-						"MailBox — License not accepted",
-						JOptionPane.ERROR_MESSAGE);
+				showError(statusHeadline(result.getStatus()) + "\n\n" + result.getMessage()
+						+ "\n\nThis computer machine id:\n" + MachineId.current()
+						+ "\n\nSelected file:\n" + chosen.getAbsolutePath());
 			}
 		}
 
 		logValid(licenses);
-		JOptionPane.showMessageDialog(
-				null,
-				"License accepted.\n\nInstalled for MailBox at:\n" + licenses.getDefaultLicenseDirectory(),
-				"MailBox — License installed",
-				JOptionPane.INFORMATION_MESSAGE);
+		showInfo("License accepted.\n\nInstalled for MailBox at:\n" + licenses.getDefaultLicenseDirectory());
 		return true;
 	}
 
@@ -107,16 +101,82 @@ public final class MailBoxLicenseGate {
 		return builder.build();
 	}
 
-	private static File chooseLicenseFile() {
-		JFileChooser chooser = new JFileChooser();
-		chooser.setDialogTitle("Select MailBox license file (.lic)");
-		chooser.setFileFilter(new FileNameExtensionFilter("ULM license (*.lic)", "lic"));
-		chooser.setAcceptAllFileFilterUsed(true);
-		int outcome = chooser.showOpenDialog(null);
-		if (outcome != JFileChooser.APPROVE_OPTION) {
-			return null;
+	/** Native Windows/macOS/Linux file dialog (AWT FileDialog) — friendlier than Swing JFileChooser. */
+	private static File chooseLicenseFileNative() {
+		AtomicReference<File> selected = new AtomicReference<>();
+		runOnEdt(() -> {
+			Frame owner = new Frame("MailBox");
+			try {
+				owner.setUndecorated(true);
+				owner.setLocationRelativeTo(null);
+				owner.setAlwaysOnTop(true);
+				owner.setVisible(true);
+				FileDialog dialog = new FileDialog(owner, "Select MailBox license file (.lic)", FileDialog.LOAD);
+				dialog.setFile("*.lic");
+				dialog.setFilenameFilter((dir, name) -> name.toLowerCase().endsWith(".lic"));
+				dialog.setAlwaysOnTop(true);
+				dialog.setVisible(true);
+				String file = dialog.getFile();
+				String dir = dialog.getDirectory();
+				if (file != null && dir != null) {
+					selected.set(new File(dir, file));
+				}
+			} finally {
+				owner.dispose();
+			}
+		});
+		return selected.get();
+	}
+
+	private static int askSelectOrExit(LicenseResult result, LicenseManager licenses) {
+		AtomicReference<Integer> choice = new AtomicReference<>(JOptionPane.CLOSED_OPTION);
+		runOnEdt(() -> choice.set(JOptionPane.showOptionDialog(
+				null,
+				buildDialogMessage(result, licenses),
+				"MailBox — License required",
+				JOptionPane.YES_NO_OPTION,
+				JOptionPane.WARNING_MESSAGE,
+				null,
+				new Object[] {"Select license…", "Exit"},
+				"Select license…")));
+		Integer value = choice.get();
+		return value == null ? JOptionPane.CLOSED_OPTION : value;
+	}
+
+	private static void showError(String message) {
+		runOnEdt(() -> JOptionPane.showMessageDialog(null, message, "MailBox — License not accepted",
+				JOptionPane.ERROR_MESSAGE));
+	}
+
+	private static void showInfo(String message) {
+		runOnEdt(() -> JOptionPane.showMessageDialog(null, message, "MailBox — License installed",
+				JOptionPane.INFORMATION_MESSAGE));
+	}
+
+	private static void prepareUi() {
+		runOnEdt(() -> {
+			try {
+				UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+					| UnsupportedLookAndFeelException e) {
+				LOGGER.debug("Could not install system look and feel: {}", e.toString());
+			}
+		});
+	}
+
+	private static void runOnEdt(Runnable action) {
+		if (EventQueue.isDispatchThread()) {
+			action.run();
+			return;
 		}
-		return chooser.getSelectedFile();
+		try {
+			EventQueue.invokeAndWait(action);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			LOGGER.warn("License UI interrupted", e);
+		} catch (InvocationTargetException e) {
+			throw new IllegalStateException("License UI failed", e.getCause());
+		}
 	}
 
 	private static String buildDialogMessage(LicenseResult result, LicenseManager licenses) {
@@ -124,9 +184,10 @@ public final class MailBoxLicenseGate {
 		sb.append(statusHeadline(result.getStatus())).append("\n\n");
 		sb.append(result.getMessage()).append("\n\n");
 		sb.append("MailBox cannot be used without a valid license.\n");
+		sb.append("This computer machine id:\n").append(MachineId.current()).append("\n\n");
 		sb.append("Default license folder:\n");
 		sb.append(licenses.getDefaultLicenseDirectory()).append("\n\n");
-		sb.append("Select a .lic file issued for product MAILBOX, or Exit.");
+		sb.append("Select a .lic file issued for product MAILBOX (for this machine), or Exit.");
 		return sb.toString();
 	}
 
@@ -167,6 +228,7 @@ public final class MailBoxLicenseGate {
 		}
 		result.getSource().ifPresent(p -> System.err.println("License file: " + p));
 		System.err.println("Expected product: " + PRODUCT_CODE);
+		System.err.println("This computer machine id: " + MachineId.current());
 		System.err.println("Default license folder: " + licenses.getDefaultLicenseDirectory());
 		System.err.println("Override with -Dulm.license.file=<path> or place MAILBOX.lic in the default folder.");
 		System.err.println("MailBox cannot run without a valid license.");

@@ -102,15 +102,17 @@ public final class HtmlEmailView extends JPanel {
 	}
 
 	private void reflowHtml() {
-		int width = htmlScroll.getViewport().getExtentSize().width;
-		if (width <= 0) {
+		Dimension viewport = htmlScroll.getViewport().getExtentSize();
+		int viewportWidth = viewport.width;
+		int viewportHeight = viewport.height;
+		if (viewportWidth <= 0) {
 			return;
 		}
+		htmlPanel.setSize(new Dimension(viewportWidth, Math.max(200, viewportHeight)));
+		htmlPanel.doLayout();
 		Dimension preferred = htmlPanel.getPreferredSize();
-		int height = preferred.height;
-		if (height < htmlScroll.getViewport().getExtentSize().height) {
-			height = htmlScroll.getViewport().getExtentSize().height;
-		}
+		int width = Math.max(viewportWidth, preferred.width);
+		int height = Math.max(viewportHeight, preferred.height);
 		htmlPanel.setPreferredSize(new Dimension(width, height));
 		htmlPanel.revalidate();
 		htmlScroll.revalidate();
